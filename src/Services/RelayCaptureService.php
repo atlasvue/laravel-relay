@@ -48,10 +48,14 @@ class RelayCaptureService
             'status' => $status,
             'mode' => $context->mode,
             'failure_reason' => $failureReason?->value,
-            'meta' => $this->buildMeta($context->meta, $validationErrors),
+            'meta' => $this->buildMeta($context->meta, $validationErrors, $context->routeHeaders, $context->routeParameters),
             'response_payload' => null,
             'response_payload_truncated' => false,
             'attempt_count' => Arr::get($context->lifecycle, 'attempt_count', 0),
+            'route_id' => $context->routeId,
+            'route_identifier' => $context->routeIdentifier,
+            'destination_type' => $context->destinationType,
+            'destination' => $context->destination,
         ]);
 
         return $this->relay->newQuery()->create($attributes);
@@ -164,10 +168,18 @@ class RelayCaptureService
         return $values !== null ? (string) $values : null;
     }
 
-    private function buildMeta(array $meta, array $validationErrors): array
+    private function buildMeta(array $meta, array $validationErrors, array $routeHeaders, array $routeParameters): array
     {
         if (! empty($validationErrors)) {
             $meta['validation_errors'] = $validationErrors;
+        }
+
+        if (! empty($routeHeaders)) {
+            $meta['route_headers'] = $routeHeaders;
+        }
+
+        if (! empty($routeParameters)) {
+            $meta['route_parameters'] = $routeParameters;
         }
 
         return $meta;

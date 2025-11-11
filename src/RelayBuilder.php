@@ -6,6 +6,10 @@ namespace AtlasRelay;
 
 use AtlasRelay\Enums\RelayFailure;
 use AtlasRelay\Models\Relay;
+use AtlasRelay\Routing\RouteContext as RoutingContext;
+use AtlasRelay\Routing\Router;
+use AtlasRelay\Routing\RouteResult;
+use AtlasRelay\Routing\RoutingException;
 use AtlasRelay\Services\RelayCaptureService;
 use AtlasRelay\Support\RelayContext;
 use Illuminate\Http\Request;
@@ -36,8 +40,17 @@ class RelayBuilder
 
     private ?Relay $capturedRelay = null;
 
+    private ?RouteResult $routeResult = null;
+
+    /** @var array<string, string> */
+    private array $routeHeaders = [];
+
+    /** @var array<string, string> */
+    private array $routeParameters = [];
+
     public function __construct(
         private readonly RelayCaptureService $captureService,
+        private readonly Router $router,
         ?Request $request = null,
         mixed $payload = null
     ) {
@@ -182,7 +195,13 @@ class RelayBuilder
             $this->meta,
             $this->failureReason,
             $this->status,
-            $this->validationErrors
+            $this->validationErrors,
+            $this->routeResult?->id,
+            $this->routeResult?->identifier,
+            $this->routeResult?->type,
+            $this->routeResult?->destination,
+            $this->routeHeaders,
+            $this->routeParameters
         );
     }
 
@@ -191,7 +210,6 @@ class RelayBuilder
         $this->mode ??= 'event';
         $this->ensureRelayCaptured();
 
-        // Event orchestration will be handled in the outbound phases.
         return $this;
     }
 
@@ -205,18 +223,12 @@ class RelayBuilder
 
     public function dispatchAutoRoute(): self
     {
-        $this->mode ??= 'auto_route';
-        $this->ensureRelayCaptured();
-
-        return $this;
+        return $this->handleAutoRoute('auto_route');
     }
 
     public function autoRouteImmediately(): self
     {
-        $this->mode ??= 'auto_route_immediate';
-        $this->ensureRelayCaptured();
-
-        return $this;
+        return $this->handleAutoRoute('auto_route_immediate');
     }
 
     public function http(): self
@@ -249,6 +261,56 @@ class RelayBuilder
         $this->ensureRelayCaptured();
 
         return $this;
+    }
+
+    private function handleAutoRoute(string $mode): self
+    {
+        try {
+            $routeResult = $this->router->resolve($this->buildRouteContext());
+            $this->applyRouteResult($routeResult);
+            $this->mode ??= $mode;
+            $this->status = 'queued';
+        } catch (RoutingException $exception) {
+            $this->mode ??= $mode;
+            $this->failWith($exception->failure);
+            $this->validationError('route', $exception->getMessage());
+        }
+
+        $this->ensureRelayCaptured();
+
+        return $this;
+    }
+
+    private function applyRouteResult(RouteResult $route): void
+    {
+        $this->routeResult = $route;
+        $this->routeHeaders = $route->headers;
+        $this->routeParameters = $route->parameters;
+
+        $this->mergeLifecycleDefaults($route->lifecycle);
+    }
+
+    /**
+     * @param  array<string, mixed>  $defaults
+     */
+    private function mergeLifecycleDefaults(array $defaults): void
+    {
+        foreach ($defaults as $key => $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            if (array_key_exists($key, $this->lifecycleOverrides)) {
+                continue;
+            }
+
+            $this->lifecycleOverrides[$key] = $value;
+        }
+    }
+
+    private function buildRouteContext(): RoutingContext
+    {
+        return RoutingContext::fromRequest($this->request, $this->payload);
     }
 
     private function ensureRelayCaptured(): Relay

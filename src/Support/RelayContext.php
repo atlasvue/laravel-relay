@@ -16,6 +16,8 @@ class RelayContext
      * @param  array<string, mixed>  $lifecycle
      * @param  array<string, mixed>  $meta
      * @param  array<string, array<int, string>>  $validationErrors
+     * @param  array<string, mixed>  $routeHeaders
+     * @param  array<string, string>  $routeParameters
      */
     public function __construct(
         public readonly ?Request $request,
@@ -25,6 +27,12 @@ class RelayContext
         public readonly array $meta = [],
         public readonly ?RelayFailure $failureReason = null,
         public readonly string $status = 'queued',
-        public readonly array $validationErrors = []
+        public readonly array $validationErrors = [],
+        public readonly ?int $routeId = null,
+        public readonly ?string $routeIdentifier = null,
+        public readonly ?string $destinationType = null,
+        public readonly ?string $destination = null,
+        public readonly array $routeHeaders = [],
+        public readonly array $routeParameters = []
     ) {}
 }

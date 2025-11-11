@@ -15,6 +15,8 @@ enum RelayFailure: int
     case CANCELLED = 103;
     case ROUTE_TIMEOUT = 104;
     case INVALID_PAYLOAD = 105;
+    case ROUTE_DISABLED = 106;
+    case ROUTE_RESOLVER_ERROR = 107;
     case OUTBOUND_HTTP_ERROR = 201;
     case TOO_MANY_REDIRECTS = 203;
     case REDIRECT_HOST_CHANGED = 204;
@@ -31,6 +33,8 @@ enum RelayFailure: int
             self::CANCELLED => 'Cancelled',
             self::ROUTE_TIMEOUT => 'Route Timeout',
             self::INVALID_PAYLOAD => 'Invalid Payload',
+            self::ROUTE_DISABLED => 'Route Disabled',
+            self::ROUTE_RESOLVER_ERROR => 'Route Resolver Error',
             self::OUTBOUND_HTTP_ERROR => 'Outbound HTTP Error',
             self::TOO_MANY_REDIRECTS => 'Too Many Redirects',
             self::REDIRECT_HOST_CHANGED => 'Redirect Host Changed',
@@ -49,6 +53,8 @@ enum RelayFailure: int
             self::CANCELLED => 'Relay manually cancelled before completion.',
             self::ROUTE_TIMEOUT => 'Exceeded configured routing timeout while awaiting execution.',
             self::INVALID_PAYLOAD => 'Payload body failed JSON decoding; raw request preserved.',
+            self::ROUTE_DISABLED => 'Matched route is disabled and cannot be used.',
+            self::ROUTE_RESOLVER_ERROR => 'Programmatic routing provider threw an exception.',
             self::OUTBOUND_HTTP_ERROR => 'Outbound response returned a non-2xx HTTP status code.',
             self::TOO_MANY_REDIRECTS => 'Redirect limit (3) exceeded during outbound request.',
             self::REDIRECT_HOST_CHANGED => 'Redirect attempted to a different host and was blocked.',

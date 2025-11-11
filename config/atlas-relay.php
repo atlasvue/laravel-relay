@@ -38,6 +38,7 @@ return [
 
     'routing' => [
         'cache_ttl_seconds' => env('ATLAS_RELAY_ROUTE_CACHE_SECONDS', 1200),
+        'cache_store' => env('ATLAS_RELAY_ROUTE_CACHE_STORE'),
     ],
 
     'automation' => [
