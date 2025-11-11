@@ -18,8 +18,8 @@ class EventDeliveryTest extends TestCase
         $result = $builder->event(fn (): string => 'ok');
 
         $this->assertSame('ok', $result);
-
         $relay = $builder->relay();
+
         $this->assertSame('completed', $relay?->status);
         $this->assertNull($relay?->failure_reason);
     }
