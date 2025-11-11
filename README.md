@@ -7,16 +7,14 @@
 ## 🌍 Overview
 
 **Atlas Relay** is a Laravel package that provides a **complete relay system** for managing both **inbound and outbound webhooks**.  
-It unifies webhook reception, processing, routing, and delivery into one lifecycle — ensuring every payload is captured, tracked, and delivered with full transparency.
 
-While designed for webhook orchestration, Atlas Relay’s fluent API can handle **any type of payload relay**, from internal events to external HTTP requests.
+It unifies webhook reception, processing, routing, and delivery into one lifecycle — ensuring every payload is captured, tracked, and delivered with full transparency.
 
 ---
 
 ## 💡 Why Atlas Relay?
 
-Webhook handling is notoriously fragile — missing retries, inconsistent logging, and scattered error handling.  
-Atlas Relay eliminates these pain points with a **durable, observable pipeline** that guarantees delivery and traceability.
+Webhook handling is notoriously fragile—plagued by missing retries, inconsistent logging, and scattered error handling; Atlas Relay eliminates these pain points with a durable, observable pipeline that guarantees delivery and traceability.
 
 Atlas Relay ensures:
 
@@ -38,13 +36,6 @@ Each stage of the lifecycle is defined in its own PRD:
 - [Routing](./docs/PRD/PRD-Routing.md): determining the correct destination
 - [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md): transmitting payloads and handling retries
 - [Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md): long-term retention and audit trails
-
-### Key Principles
-
-* **Reliability:** Every webhook or payload is persisted before processing.
-* **Visibility:** All relay states, payloads, and results are logged end-to-end.
-* **Flexibility:** Use it for inbound webhooks, outbound API calls, or background jobs.
-* **Auditability:** Every relay has a full record — nothing disappears silently.
 
 ---
 
@@ -216,14 +207,14 @@ See [Atlas Relay PRD](./docs/PRD/PRD-Atlas-Relay.md) for complete job automation
 
 Atlas Relay dispatches domain events you can listen to without polling the database:
 
-| Event                          | When it fires                               |
-|--------------------------------|---------------------------------------------|
-| `RelayCaptured`                | Immediately after a relay is persisted.     |
-| `RelayAttemptStarted`          | Whenever an outbound attempt begins.        |
-| `RelayCompleted` / `RelayFailed` | When an attempt finishes successfully or fails. |
-| `RelayRequeued`                | When retry/stuck automation re-enqueues a relay. |
-| `RelayRestored`                | When a relay is restored from the archive.  |
-| `AutomationMetrics`            | After automation commands run (counts/durations). |
+| Event                            | When it fires                                     |
+|----------------------------------|---------------------------------------------------|
+| `RelayCaptured`                  | Immediately after a relay is persisted.           |
+| `RelayAttemptStarted`            | Whenever an outbound attempt begins.              |
+| `RelayCompleted` / `RelayFailed` | When an attempt finishes successfully or fails.   |
+| `RelayRequeued`                  | When retry/stuck automation re-enqueues a relay.  |
+| `RelayRestored`                  | When a relay is restored from the archive.        |
+| `AutomationMetrics`              | After automation commands run (counts/durations). |
 
 Use Laravel’s standard event listeners or queued listeners to stream these metrics to your own observability stack.
 
