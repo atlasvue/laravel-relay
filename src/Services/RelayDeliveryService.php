@@ -14,6 +14,10 @@ use Illuminate\Bus\PendingChain;
 use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
+use ReflectionException;
+use ReflectionFunction;
+use ReflectionFunctionAbstract;
+use ReflectionMethod;
 
 /**
  * Orchestrates outbound delivery modes (events, HTTP, dispatch) and lifecycle recording.
@@ -33,7 +37,7 @@ class RelayDeliveryService
         $startedAt = microtime(true);
 
         try {
-            $result = $callback();
+            $result = $this->invokeEventCallback($relay, $callback);
             $duration = $this->durationSince($startedAt);
             $this->lifecycle->markCompleted($relay, [], $duration);
 
@@ -121,5 +125,74 @@ class RelayDeliveryService
     private function durationSince(float $startedAt): int
     {
         return (int) max(0, round((microtime(true) - $startedAt) * 1000));
+    }
+
+    private function invokeEventCallback(Relay $relay, callable $callback): mixed
+    {
+        $arguments = $this->determineEventArguments($callback, $relay);
+
+        return $callback(...$arguments);
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function determineEventArguments(callable $callback, Relay $relay): array
+    {
+        $reflection = $this->reflectCallback($callback);
+
+        if ($reflection === null) {
+            return [$relay->payload, $relay];
+        }
+
+        $parameters = $reflection->getParameters();
+
+        if ($parameters === []) {
+            return [];
+        }
+
+        $available = [$relay->payload, $relay];
+        $arguments = [];
+
+        foreach ($parameters as $index => $parameter) {
+            if ($parameter->isVariadic()) {
+                $arguments = array_merge($arguments, $available);
+
+                break;
+            }
+
+            if ($index < count($available)) {
+                $arguments[] = $available[$index];
+            }
+        }
+
+        return $arguments;
+    }
+
+    private function reflectCallback(callable $callback): ?ReflectionFunctionAbstract
+    {
+        try {
+            if ($callback instanceof \Closure) {
+                return new ReflectionFunction($callback);
+            }
+
+            if (is_array($callback) && isset($callback[0], $callback[1])) {
+                return new ReflectionMethod($callback[0], (string) $callback[1]);
+            }
+
+            if (is_object($callback) && method_exists($callback, '__invoke')) {
+                return new ReflectionMethod($callback, '__invoke');
+            }
+
+            if (is_string($callback)) {
+                return str_contains($callback, '::')
+                    ? new ReflectionMethod($callback)
+                    : new ReflectionFunction($callback);
+            }
+        } catch (ReflectionException) {
+            return null;
+        }
+
+        return null;
     }
 }

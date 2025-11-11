@@ -6,6 +6,7 @@ namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Enums\RelayFailure;
 use AtlasRelay\Facades\Relay;
+use AtlasRelay\Models\Relay as RelayModel;
 use AtlasRelay\Tests\TestCase;
 use RuntimeException;
 
@@ -38,5 +39,31 @@ class EventDeliveryTest extends TestCase
             $this->assertSame('failed', $relay?->status);
             $this->assertSame(RelayFailure::EXCEPTION->value, $relay?->failure_reason);
         }
+    }
+
+    public function test_event_callback_can_access_payload_when_declared(): void
+    {
+        $builder = Relay::payload(['foo' => 'bar', 'count' => 5]);
+
+        $result = $builder->event(function (array $payload): string {
+            return sprintf('%s:%d', $payload['foo'], $payload['count']);
+        });
+
+        $this->assertSame('bar:5', $result);
+    }
+
+    public function test_event_callback_can_access_relay_instance(): void
+    {
+        $builder = Relay::payload(['foo' => 'bar']);
+        $relayFromCallback = null;
+
+        $builder->event(function (array $payload, RelayModel $relay) use (&$relayFromCallback): void {
+            $relayFromCallback = $relay;
+
+            $this->assertSame($payload, $relay->payload);
+        });
+
+        $this->assertInstanceOf(RelayModel::class, $relayFromCallback);
+        $this->assertSame($builder->relay()?->id, $relayFromCallback?->id);
     }
 }
