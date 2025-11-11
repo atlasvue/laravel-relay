@@ -11,6 +11,13 @@ use AtlasRelay\Services\RelayLifecycleService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
+/**
+ * Class EnforceRelayTimeoutsCommand
+ *
+ * Marks relays as failed when processing exceeds configured time limits,
+ * fulfilling the timeout enforcement automation in PRD — Atlas Relay
+ * (Automation Jobs).
+ */
 class EnforceRelayTimeoutsCommand extends Command
 {
     protected $signature = 'atlas-relay:enforce-timeouts {--chunk=100 : Number of relays per chunk}';

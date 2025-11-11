@@ -11,6 +11,12 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Class RequeueStuckRelaysCommand
+ *
+ * Resets relays stuck in processing to queued status, delivering the
+ * requeue automation defined in PRD — Atlas Relay (Automation Jobs).
+ */
 class RequeueStuckRelaysCommand extends Command
 {
     protected $signature = 'atlas-relay:requeue-stuck {--chunk=100 : Number of relays per chunk}';

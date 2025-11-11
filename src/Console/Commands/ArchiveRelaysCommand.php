@@ -11,6 +11,12 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Class ArchiveRelaysCommand
+ *
+ * Moves completed or failed relays into `atlas_relay_archives` to uphold the
+ * retention workflow defined in PRD — Archiving & Logging (Archiving Process).
+ */
 class ArchiveRelaysCommand extends Command
 {
     protected $signature = 'atlas-relay:archive {--chunk=500 : Number of relays per chunk}';

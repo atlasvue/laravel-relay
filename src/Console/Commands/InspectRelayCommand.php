@@ -8,6 +8,12 @@ use AtlasRelay\Models\Relay;
 use AtlasRelay\Models\RelayArchive;
 use Illuminate\Console\Command;
 
+/**
+ * Class InspectRelayCommand
+ *
+ * Outputs stored lifecycle data for live or archived relays to support the
+ * auditing visibility mandated by PRD — Archiving & Logging (Observability).
+ */
 class InspectRelayCommand extends Command
 {
     protected $signature = 'atlas-relay:relay:inspect {id : Relay ID} {--archived : Inspect the archive table}';

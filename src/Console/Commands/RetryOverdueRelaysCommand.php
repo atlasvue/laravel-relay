@@ -10,6 +10,12 @@ use AtlasRelay\Models\Relay;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Class RetryOverdueRelaysCommand
+ *
+ * Requeues relays whose retry window has elapsed, fulfilling the retry
+ * automation cycle outlined in PRD — Atlas Relay (Automation Jobs).
+ */
 class RetryOverdueRelaysCommand extends Command
 {
     protected $signature = 'atlas-relay:retry-overdue {--chunk=100 : Number of relays to process per chunk}';

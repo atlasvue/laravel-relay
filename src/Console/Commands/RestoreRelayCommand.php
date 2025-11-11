@@ -10,6 +10,13 @@ use AtlasRelay\Models\RelayArchive;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
+/**
+ * Class RestoreRelayCommand
+ *
+ * Rehydrates an archived relay for replay scenarios, supporting the
+ * incident recovery expectations raised in PRD — Archiving & Logging
+ * (Outstanding Questions / Clarifications — Restoration Utility).
+ */
 class RestoreRelayCommand extends Command
 {
     protected $signature = 'atlas-relay:relay:restore {id : Relay archive ID} {--delete : Delete the archive record after restoration}';
