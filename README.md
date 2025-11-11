@@ -1,22 +1,25 @@
 # Atlas Relay
 
-> A unified Laravel relay system built for **reliability**, **observability**, and **control** — capture any payload, process it flexibly, and relay it anywhere with full lifecycle visibility.
+> A unified Laravel relay system for **sending and receiving webhooks** — built for **reliability**, **observability**, and **control**. Capture, process, and relay any payload with full lifecycle visibility.
 
 ---
 
 ## 🌍 Overview
 
-**Atlas Relay** is a Laravel package that provides a **unified system for capturing, processing, and relaying payloads** between internal and external destinations. It replaces fragmented inbound/outbound logic with a single continuous **relay lifecycle** that ensures every payload is tracked, processed, and delivered with complete observability.
+**Atlas Relay** is a Laravel package that provides a **complete relay system** for managing both **inbound and outbound webhooks**. It unifies webhook reception, processing, and delivery into one lifecycle — ensuring every payload is captured, tracked, and delivered with full transparency.
+
+While designed for webhook orchestration, Atlas Relay’s fluent API can handle **any type of payload relay**, from internal events to external HTTP requests.
 
 ### Why Atlas Relay?
 
-In modern systems, data moves constantly between services. Payloads often get lost, retried inconsistently, or lack visibility into their journey. Atlas Relay solves these issues by creating a persistent, traceable record for every payload and automating its entire lifecycle.
+Webhook handling is notoriously fragile — missing retries, inconsistent logging, and scattered error handling. Atlas Relay eliminates these pain points with a **durable, observable pipeline** that guarantees delivery and traceability.
 
 Atlas Relay ensures:
 
-* Every payload is **stored first, processed second**.
-* All relays are **auditable, traceable, and retryable**.
-* Event-driven and HTTP-based deliveries share the same **fluent, chainable API**.
+* Every webhook is **stored before delivery** — never lost or skipped.
+* Both **incoming and outgoing** requests share a single unified process.
+* Every transaction is **auditable, replayable, and reliable**.
+* The API can support **custom internal relays** or **HTTP dispatches** beyond webhooks.
 
 ---
 
@@ -28,27 +31,27 @@ Atlas Relay ensures:
 
 ### Key Principles
 
-* **Reliability:** Every payload is persisted before processing.
-* **Visibility:** All relay states, payloads, and results are logged.
-* **Flexibility:** Use events, dispatches, or routing for any workflow.
-* **Auditability:** End-to-end tracking across every relay operation.
+* **Reliability:** Every webhook or payload is persisted before processing.
+* **Visibility:** All relay states, payloads, and results are logged end-to-end.
+* **Flexibility:** Use it for inbound webhooks, outbound API calls, or background jobs.
+* **Auditability:** Every relay has a full record — nothing disappears silently.
 
 ---
 
 ## ✨ Feature Highlights
 
-* Unified API for all relay types (event, dispatch, autoroute, direct)
-* Automatic lifecycle tracking with status management
-* Retry, delay, and timeout handling for routed deliveries
-* Caching for fast route lookup with invalidation
-* Full audit trail and logging of payloads and responses
-* Automatic archiving and purging for data lifecycle management
+* Unified webhook lifecycle — capture, route, and deliver.
+* Receive and send webhooks through one consistent API.
+* Auto-route inbound webhooks to external destinations.
+* Supports synchronous and asynchronous modes.
+* Retry, delay, and timeout control for delivery reliability.
+* Built-in caching, logging, and archiving for scale.
 
 ---
 
 ## 🧩 Fluent API Examples
 
-Atlas Relay exposes a consistent, chainable API for defining how payloads are captured and delivered.
+Atlas Relay exposes a fluent, chainable API that powers both **inbound and outbound webhook flows**.
 
 ### Example A — Capture + Event Execution
 
@@ -58,7 +61,7 @@ Relay::request($request)
     ->event(fn() => $this->handleEvent($payload));
 ```
 
-Stores a payload, executes a synchronous event handler, and marks the relay as complete when finished.
+Captures an inbound webhook, stores it, executes a handler, and marks the relay complete.
 
 ### Example B — Capture + Dispatch Event
 
@@ -68,9 +71,9 @@ Relay::request($request)
     ->dispatchEvent(fn() => $this->handleEvent($payload));
 ```
 
-Stores payload and dispatches an asynchronous event. The relay completes when the dispatched job succeeds.
+Processes an inbound webhook asynchronously. Marks as complete once dispatched successfully.
 
-### Example C — Auto-Route Dispatch
+### Example C — Auto-Route Dispatch (Inbound → Outbound)
 
 ```php
 Relay::request($request)
@@ -78,7 +81,7 @@ Relay::request($request)
     ->dispatchAutoRoute();
 ```
 
-Captures a payload and routes it automatically using configured domains and routes.
+Receives a webhook and automatically delivers it to the correct outbound destination using your configured routes.
 
 ### Example D — Auto-Route Immediate Delivery
 
@@ -88,9 +91,9 @@ Relay::request($request)
     ->autoRouteImmediately();
 ```
 
-Performs synchronous routing and returns outbound response inline.
+Performs immediate inbound-to-outbound delivery, returning the response inline.
 
-### Example E — Direct Outbound Relay
+### Example E — Direct Outbound Webhook
 
 ```php
 Relay::payload($payload)
@@ -98,13 +101,13 @@ Relay::payload($payload)
     ->post('https://api.example.com/webhooks');
 ```
 
-Performs direct outbound delivery without route lookup.
+Sends an outbound webhook directly without route lookup.
 
 ---
 
 ## 🧠 Relay Lifecycle
 
-Every relay is represented by a record in the database (`atlas_relays`) and passes through these states:
+Every webhook or payload relay is tracked from start to finish in the `atlas_relays` table:
 
 | Status         | Description                                 |
 | -------------- | ------------------------------------------- |
@@ -114,21 +117,15 @@ Every relay is represented by a record in the database (`atlas_relays`) and pass
 | **Completed**  | Relay finished successfully.                |
 | **Cancelled**  | Relay manually stopped before completion.   |
 
-### Automatic Transitions
-
-* Relays update automatically based on execution outcome.
-* Failures capture exceptions or HTTP errors with detailed reasons.
-* Completed relays store response status and payload.
-
 ---
 
 ## 🔁 Retry, Delay & Timeout Handling
 
-Retry logic applies only to **AutoRoute** deliveries.
+Retry logic applies to **AutoRoute** deliveries — especially useful for outbound webhooks.
 
-* **Retry**: Failed deliveries reattempt after `retry_at` interval.
-* **Delay**: Postpones execution by configured seconds.
-* **Timeout**: Marks relays as failed after exceeding duration.
+* **Retry**: Failed deliveries reattempt after `retry_at`.
+* **Delay**: Postpones initial delivery by seconds.
+* **Timeout**: Fails relays exceeding duration limits.
 
 Event-based and direct deliveries (`event()`, `dispatchEvent()`, `http()->post()`) complete immediately and are not retried.
 
@@ -136,58 +133,55 @@ Event-based and direct deliveries (`event()`, `dispatchEvent()`, `http()->post()
 
 ## 🧭 Routing Behavior
 
-* `dispatchAutoRoute()` and `autoRouteImmediately()` use domain + route registry.
-* Supports strict and dynamic path matching (`/event/{CUSTOMER_ID}`).
-* Cached for performance with **20-minute invalidation** after domain or route updates.
+* Maps inbound webhook routes to outbound destinations.
+* Supports dynamic paths like `/event/{CUSTOMER_ID}`.
+* 20-minute cache with auto-invalidation after route changes.
 
 ---
 
 ## 🔍 Observability & Logging
 
-Atlas Relay logs all relay activity, including:
+All webhook activity — inbound and outbound — is fully logged:
 
-* Request source and headers
-* Payload and response data
-* Status transitions and timing metrics
-* Retry history for failed deliveries
+* Request metadata (source, headers)
+* Payload and response details
+* Retry attempts and failure causes
+* Processing duration and timestamps
 
-Each relay record is auditable from creation to completion, ensuring full transparency into what was processed, when, and how.
+Every relay is a complete, searchable audit trail of webhook traffic.
 
 ---
 
 ## 🗄️ Archiving & Retention
 
-Relays automatically move to archive tables (`atlas_relay_archives`) based on retention settings.
+| Variable                   | Default | Description                              |
+| -------------------------- | ------- | ---------------------------------------- |
+| `ATLAS_RELAY_ARCHIVE_DAYS` | 30      | Days before relays move to archive.      |
+| `ATLAS_RELAY_PURGE_DAYS`   | 180     | Days before archived relays are deleted. |
 
-| Env Variable               | Default | Description                      |
-| -------------------------- | ------- | -------------------------------- |
-| `ATLAS_RELAY_ARCHIVE_DAYS` | 30      | Days before relays are archived. |
-| `ATLAS_RELAY_PURGE_DAYS`   | 180     | Days before archives are purged. |
-
-* Archiving runs nightly at **10 PM EST**.
-* Purging runs nightly at **11 PM EST**.
+Archiving runs nightly at **10 PM EST**; purging at **11 PM EST**.
 
 ---
 
 ## 🧮 Automation Jobs
 
-| Process              | Frequency         | Description                               |
-| -------------------- | ----------------- | ----------------------------------------- |
-| Retry overdue        | Every minute      | Re-attempts failed AutoRoute deliveries.  |
-| Requeue stuck relays | Every 10 minutes  | Recovers relays stuck in `Processing`.    |
-| Timeout enforcement  | Hourly            | Marks timed-out relays as failed.         |
-| Archiving            | Daily (10 PM EST) | Moves aged relays to archive.             |
-| Purging              | Daily (11 PM EST) | Deletes archived relays beyond retention. |
+| Process              | Frequency        | Description                          |
+| -------------------- | ---------------- | ------------------------------------ |
+| Retry overdue        | Every minute     | Retries failed outbound webhooks.    |
+| Requeue stuck relays | Every 10 minutes | Restores relays stuck in processing. |
+| Timeout enforcement  | Hourly           | Marks expired relays as failed.      |
+| Archiving            | Daily (10 PM)    | Moves completed relays to archive.   |
+| Purging              | Daily (11 PM)    | Removes expired archive data.        |
 
 ---
 
 ## ⚙️ Configuration
 
-| Variable                   | Description                               |
-| -------------------------- | ----------------------------------------- |
-| `QUEUE_CONNECTION`         | Queue backend for asynchronous execution. |
-| `ATLAS_RELAY_ARCHIVE_DAYS` | Days before relays are archived.          |
-| `ATLAS_RELAY_PURGE_DAYS`   | Days before archived relays are deleted.  |
+| Variable                   | Description                              |
+| -------------------------- | ---------------------------------------- |
+| `QUEUE_CONNECTION`         | Queue backend for async dispatches.      |
+| `ATLAS_RELAY_ARCHIVE_DAYS` | Days before relays are archived.         |
+| `ATLAS_RELAY_PURGE_DAYS`   | Days before archived relays are deleted. |
 
 ---
 
@@ -205,7 +199,7 @@ Relays automatically move to archive tables (`atlas_relay_archives`) based on re
 
 ## 🧪 Example Usage
 
-### Handling an HTTP Request
+### Receiving a Webhook and Forwarding Automatically
 
 ```php
 public function handle(Request $request)
@@ -216,32 +210,26 @@ public function handle(Request $request)
 }
 ```
 
-### Dispatching an Event Relay
+### Sending an Outbound Webhook
+
+```php
+Relay::payload(['status' => 'processed'])
+    ->http()
+    ->post('https://hooks.example.com/receive');
+```
+
+### Internal Event Relay
 
 ```php
 Relay::payload(['id' => 42])
     ->dispatchEvent(fn() => ExampleJob::dispatch());
 ```
 
-### Direct Outbound Delivery
-
-```php
-Relay::payload(['ping' => 'ok'])
-    ->http()
-    ->post('https://hooks.example.com/endpoint');
-```
-
 ---
 
 ## 🤝 Contributing
 
-Atlas Relay is designed for extensibility. Contributions are welcome to expand features, improve logging, or enhance routing logic.
-
-### Guidelines
-
-* Follow Laravel and PSR standards.
-* Add tests for new behaviors.
-* Update docs for all feature changes.
+Atlas Relay is designed for extensibility across webhook and payload delivery systems. Contributions to routing, visibility, or lifecycle handling are encouraged.
 
 ### Local Setup
 

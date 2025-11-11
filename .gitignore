@@ -28,8 +28,6 @@ yarn-error.log
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
-/storage/truncated_code.txt
-
 # Intellij idea
 *.iml
 .idea
