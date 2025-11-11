@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace AtlasRelay\Services;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Events\RelayCaptured;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Support\RelayContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Handles persistence of relay capture metadata according to the Payload Capture PRD.
@@ -58,7 +61,16 @@ class RelayCaptureService
             'destination' => $context->destination,
         ]);
 
-        return $this->relay->newQuery()->create($attributes);
+        $relay = $this->relay->newQuery()->create($attributes);
+
+        Event::dispatch(new RelayCaptured($relay));
+        Log::info('atlas-relay:capture', [
+            'relay_id' => $relay->id,
+            'status' => $relay->status,
+            'mode' => $relay->mode,
+        ]);
+
+        return $relay;
     }
 
     private function determinePayload(RelayContext $context): mixed

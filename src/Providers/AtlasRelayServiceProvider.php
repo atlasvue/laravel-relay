@@ -6,9 +6,12 @@ namespace AtlasRelay\Providers;
 
 use AtlasRelay\Console\Commands\ArchiveRelaysCommand;
 use AtlasRelay\Console\Commands\EnforceRelayTimeoutsCommand;
+use AtlasRelay\Console\Commands\InspectRelayCommand;
 use AtlasRelay\Console\Commands\PurgeRelayArchivesCommand;
 use AtlasRelay\Console\Commands\RequeueStuckRelaysCommand;
+use AtlasRelay\Console\Commands\RestoreRelayCommand;
 use AtlasRelay\Console\Commands\RetryOverdueRelaysCommand;
+use AtlasRelay\Console\Commands\SeedRelayRoutesCommand;
 use AtlasRelay\Contracts\RelayManagerInterface;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Models\RelayRoute;
@@ -71,6 +74,9 @@ class AtlasRelayServiceProvider extends ServiceProvider
                 EnforceRelayTimeoutsCommand::class,
                 ArchiveRelaysCommand::class,
                 PurgeRelayArchivesCommand::class,
+                RestoreRelayCommand::class,
+                InspectRelayCommand::class,
+                SeedRelayRoutesCommand::class,
             ]);
 
             $this->publishes([

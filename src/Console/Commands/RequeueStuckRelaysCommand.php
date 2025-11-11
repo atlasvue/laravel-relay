@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace AtlasRelay\Console\Commands;
 
 use AtlasRelay\Events\AutomationMetrics;
+use AtlasRelay\Events\RelayRequeued;
 use AtlasRelay\Models\Relay;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class RequeueStuckRelaysCommand extends Command
 {
@@ -43,6 +45,8 @@ class RequeueStuckRelaysCommand extends Command
                     ])->save();
 
                     $count++;
+                    event(new RelayRequeued($relay));
+                    Log::info('atlas-relay:requeue-stuck', ['relay_id' => $relay->id]);
                 }
             });
 

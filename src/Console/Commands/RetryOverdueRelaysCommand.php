@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace AtlasRelay\Console\Commands;
 
 use AtlasRelay\Events\AutomationMetrics;
+use AtlasRelay\Events\RelayRequeued;
 use AtlasRelay\Models\Relay;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class RetryOverdueRelaysCommand extends Command
 {
@@ -35,6 +37,9 @@ class RetryOverdueRelaysCommand extends Command
                     ])->save();
 
                     $count++;
+
+                    event(new RelayRequeued($relay));
+                    Log::info('atlas-relay:retry-overdue', ['relay_id' => $relay->id]);
                 }
             });
 

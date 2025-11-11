@@ -108,6 +108,16 @@ Relay::payload($payload)
 Sends an outbound webhook directly without route lookup.  
 (Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
 
+### Mode Cheat Sheet
+
+| Mode         | Entry Point                             | Notes                                                                               |
+|--------------|-----------------------------------------|-------------------------------------------------------------------------------------|
+| HTTP         | `Relay::payload()->http()`              | Returns Laravel’s `PendingRequest`; all Http client methods remain available.       |
+| Event        | `Relay::request()->event()`             | Executes sync callbacks/listeners and updates lifecycle before bubbling exceptions. |
+| Dispatch     | `Relay::payload()->dispatch()`          | Returns native `PendingDispatch`; job middleware records success/failure.           |
+| DispatchSync | `Relay::payload()->dispatchSync()`      | Runs immediately in-process with lifecycle tracking.                                |
+| Auto-Route   | `Relay::request()->dispatchAutoRoute()` | Resolves routes, copies delivery defaults, and persists before delivery.            |
+
 ---
 
 ## 🧠 Relay Lifecycle
@@ -199,6 +209,53 @@ protected function schedule(Schedule $schedule): void
 Cron expressions and thresholds can be overridden via the `atlas-relay.automation` config options published with the package.
 
 See [Atlas Relay PRD](./docs/PRD/PRD-Atlas-Relay.md) for complete job automation details.
+
+---
+
+## 🔔 Observability Hooks
+
+Atlas Relay dispatches domain events you can listen to without polling the database:
+
+| Event                          | When it fires                               |
+|--------------------------------|---------------------------------------------|
+| `RelayCaptured`                | Immediately after a relay is persisted.     |
+| `RelayAttemptStarted`          | Whenever an outbound attempt begins.        |
+| `RelayCompleted` / `RelayFailed` | When an attempt finishes successfully or fails. |
+| `RelayRequeued`                | When retry/stuck automation re-enqueues a relay. |
+| `RelayRestored`                | When a relay is restored from the archive.  |
+| `AutomationMetrics`            | After automation commands run (counts/durations). |
+
+Use Laravel’s standard event listeners or queued listeners to stream these metrics to your own observability stack.
+
+---
+
+## 🛠 Artisan Helpers
+
+| Command                                   | Description                                      |
+|-------------------------------------------|--------------------------------------------------|
+| `atlas-relay:routes:seed path.json`       | Seed routes from a JSON file.                    |
+| `atlas-relay:relay:inspect {id}`          | Print relay or archived relay state (JSON).      |
+| `atlas-relay:relay:restore {id}`          | Move an archived relay back into the live table. |
+| `atlas-relay:retry-overdue`               | Requeue relays whose retry window elapsed.       |
+| `atlas-relay:requeue-stuck`               | Requeue relays stuck in `processing`.            |
+| `atlas-relay:enforce-timeouts`            | Mark long-running relays as timed out.           |
+| `atlas-relay:archive` / `:purge-archives` | Manage archiving and purge retention.            |
+
+---
+
+## ⬆️ Upgrading & Publishing
+
+1. **Publish config + migrations**  
+   `php artisan vendor:publish --tag=atlas-relay-config`  
+   `php artisan vendor:publish --tag=atlas-relay-migrations`
+2. **Run migrations**  
+   `php artisan migrate`
+3. **Register automation scheduler**  
+   Call `RelayScheduler::register($schedule)` inside your application’s `Console\Kernel`.
+4. **Review new commands/events**  
+   Subscribe to the lifecycle events above and enable the automation commands appropriate for your environment.
+
+Each release announces schema changes in `CHANGELOG.md`; run migrations whenever you update the package.
 
 ---
 
