@@ -7,6 +7,12 @@ namespace AtlasRelay\Routing;
 use AtlasRelay\Enums\RelayFailure;
 use RuntimeException;
 
+/**
+ * Class RoutingException
+ *
+ * Represents routing resolution failures so relays can be marked according to
+ * the rules in PRD — Routing (Failure Handling).
+ */
 class RoutingException extends RuntimeException
 {
     public function __construct(public readonly RelayFailure $failure, string $message)

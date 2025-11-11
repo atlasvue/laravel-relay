@@ -9,6 +9,12 @@ use AtlasRelay\Models\RelayArchive;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
+/**
+ * Class PurgeRelayArchivesCommand
+ *
+ * Deletes archived relays that exceed retention, executing the purge cycle
+ * prescribed by PRD — Archiving & Logging (Purge Process).
+ */
 class PurgeRelayArchivesCommand extends Command
 {
     protected $signature = 'atlas-relay:purge-archives';

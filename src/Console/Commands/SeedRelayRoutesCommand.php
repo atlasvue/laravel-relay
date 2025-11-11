@@ -8,6 +8,12 @@ use AtlasRelay\Models\RelayRoute;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
+/**
+ * Class SeedRelayRoutesCommand
+ *
+ * Seeds auto-routing definitions from JSON, aligning with the route
+ * configuration requirements in PRD — Routing (Route Definitions).
+ */
 class SeedRelayRoutesCommand extends Command
 {
     protected $signature = 'atlas-relay:routes:seed {file : Path to a JSON file defining routes} {--replace : Truncate existing routes before seeding}';
