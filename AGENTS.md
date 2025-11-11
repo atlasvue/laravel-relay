@@ -23,6 +23,18 @@ All **Agents** must treat any **Product Requirement Documents (PRDs)** included 
 5. Always reference **PRDs** for functional requirements and naming accuracy.
 6. Write clear, testable, and deterministic code.
 7. Never introduce new logic, naming, or assumptions that conflict with the PRD.
+8. Every class must include a **PHPDoc block at the top of the file** summarizing its purpose, expected usage, and any relevant PRD reference. These doc blocks are mandatory and intended to help both internal and external consumers understand the class role without reading its internals.
+
+Example:
+
+```php
+/**
+ * Class UserWebhookService
+ *
+ * Handles webhook registration, processing, and retry logic for user-related events.
+ * Defined by PRD: WebhookStation — Outbound Delivery Rules.
+ */
+```
 
 ---
 
@@ -97,6 +109,7 @@ package-name/
 6. **Dependencies** — keep minimal; prefer Laravel contracts over concrete bindings.
 7. **PRD Alignment** — always verify that logic, method names, and service behavior align with the PRD before implementation.
 8. **Deviation Handling** — if any PRD rule appears incomplete or conflicting, pause work and flag it for clarification rather than guessing.
+9. **Documentation via Doc Blocks** — every class, interface, and trait must include a top-level PHPDoc block explaining its purpose and referencing the PRD section (if applicable). This ensures consumers understand intent and maintainability is preserved.
 
 ---
 
@@ -119,6 +132,7 @@ Before committing any change:
 3. Verify autoload & discovery: `composer dump-autoload`
 4. Confirm PRD alignment for naming and functionality.
 5. Ensure no temporary debugging or unused imports remain.
+6. Verify that every class includes a valid doc block with purpose and PRD reference.
 
 ---
 
@@ -130,6 +144,7 @@ Every Agent is required to:
 
 * Follow this guide precisely.
 * Use PRDs as the **single source of truth** for all logic, naming, and intent.
+* Include PHPDoc blocks at the top of every class describing purpose and PRD linkage.
 * Seek clarification when a PRD is ambiguous or missing required details.
 
 > **Failure to follow the PRD or this guide will result in revision or rejection of the contribution.**
