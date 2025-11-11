@@ -92,6 +92,10 @@ class RelayCaptureService
             return [];
         }
 
+        $whitelist = $this->prepareHeaderLookup(config('atlas-relay.capture.header_whitelist', []));
+        $sensitive = $this->prepareHeaderLookup(config('atlas-relay.capture.sensitive_headers', []));
+        $maskedValue = config('atlas-relay.capture.masked_value', '***');
+
         $normalized = [];
         foreach ($request->headers->all() as $name => $values) {
             $key = strtolower($name);
@@ -101,8 +105,8 @@ class RelayCaptureService
                 continue;
             }
 
-            if ($this->shouldMaskHeader($key)) {
-                $normalized[$key] = config('atlas-relay.capture.masked_value', '***');
+            if ($this->shouldMaskHeader($key, $whitelist, $sensitive)) {
+                $normalized[$key] = $maskedValue;
 
                 continue;
             }
@@ -158,17 +162,30 @@ class RelayCaptureService
         return strlen($encoded);
     }
 
-    private function shouldMaskHeader(string $header): bool
+    /**
+     * @param array<string, bool> $whitelist
+     * @param array<string, bool> $sensitive
+     */
+    private function shouldMaskHeader(string $header, array $whitelist, array $sensitive): bool
     {
-        $whitelist = array_map('strtolower', config('atlas-relay.capture.header_whitelist', []));
-
-        if (in_array($header, $whitelist, true)) {
+        if (isset($whitelist[$header])) {
             return false;
         }
 
-        $sensitive = array_map('strtolower', config('atlas-relay.capture.sensitive_headers', []));
+        return isset($sensitive[$header]);
+    }
 
-        return in_array($header, $sensitive, true);
+    /**
+     * @param array<int, string> $headers
+     * @return array<string, bool>
+     */
+    private function prepareHeaderLookup(array $headers): array
+    {
+        if ($headers === []) {
+            return [];
+        }
+
+        return array_fill_keys(array_map('strtolower', $headers), true);
     }
 
     private function lastValue(mixed $values): ?string

@@ -45,6 +45,25 @@ class RelayCaptureTest extends TestCase
         $this->assertSame(['source' => 'test'], $relay->meta);
     }
 
+    public function test_whitelisted_headers_are_not_masked(): void
+    {
+        $originalSensitive = config('atlas-relay.capture.sensitive_headers');
+        $originalWhitelist = config('atlas-relay.capture.header_whitelist');
+
+        config()->set('atlas-relay.capture.sensitive_headers', ['x-secret-token']);
+        config()->set('atlas-relay.capture.header_whitelist', ['X-Secret-Token']);
+
+        $request = Request::create('/relay', 'POST');
+        $request->headers->set('X-Secret-Token', '12345');
+
+        $relay = Relay::request($request)->capture();
+
+        $this->assertSame('12345', $relay->headers['x-secret-token']);
+
+        config()->set('atlas-relay.capture.sensitive_headers', $originalSensitive);
+        config()->set('atlas-relay.capture.header_whitelist', $originalWhitelist);
+    }
+
     public function test_payload_size_limit_marks_relay_failed(): void
     {
         $payload = ['data' => str_repeat('A', 70 * 1024)];
