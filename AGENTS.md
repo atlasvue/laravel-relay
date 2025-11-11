@@ -8,7 +8,9 @@ This guide defines the conventions and best practices for contributors working o
 
 This repository provides **standalone Laravel packages** designed for installation in other Laravel applications. There is **no full Laravel app** in this repo — all logic must remain **framework-integrated but package-isolated**.
 
-Every package must also follow any **Product Requirement Documents (PRDs)** available in the project. PRDs are the **source of truth** for business rules, naming, and behavior. Code must always align with the PRD’s intent and structure.
+All **Agents** must treat any **Product Requirement Documents (PRDs)** included in the project as the **absolute source of truth** for functionality, naming, structure, and business logic.
+
+> **PRDs override all assumptions or prior conventions.** When a PRD defines behavior, data flow, or naming, Agents must implement code that directly matches those definitions. If uncertainty arises, Agents must defer to the PRD or seek clarification before coding.
 
 ---
 
@@ -20,6 +22,7 @@ Every package must also follow any **Product Requirement Documents (PRDs)** avai
 4. Keep everything **self-contained**: no hard dependencies on a consuming app.
 5. Always reference **PRDs** for functional requirements and naming accuracy.
 6. Write clear, testable, and deterministic code.
+7. Never introduce new logic, naming, or assumptions that conflict with the PRD.
 
 ---
 
@@ -92,7 +95,8 @@ package-name/
 4. **Type Safety** — declare all parameter and return types.
 5. **Error Handling** — use custom exceptions for expected failures.
 6. **Dependencies** — keep minimal; prefer Laravel contracts over concrete bindings.
-7. **PRD Alignment** — always verify that logic, method names, and service behavior align with any provided PRDs before implementation.
+7. **PRD Alignment** — always verify that logic, method names, and service behavior align with the PRD before implementation.
+8. **Deviation Handling** — if any PRD rule appears incomplete or conflicting, pause work and flag it for clarification rather than guessing.
 
 ---
 
@@ -121,4 +125,11 @@ Before committing any change:
 ## Enforcement
 
 Any contribution that violates these standards or PRD requirements will be rejected or revised before merge.
-Every agent is expected to follow this guide and maintain alignment between implementation and the project’s PRDs.
+
+Every Agent is required to:
+
+* Follow this guide precisely.
+* Use PRDs as the **single source of truth** for all logic, naming, and intent.
+* Seek clarification when a PRD is ambiguous or missing required details.
+
+> **Failure to follow the PRD or this guide will result in revision or rejection of the contribution.**
