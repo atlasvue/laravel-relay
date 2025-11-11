@@ -145,16 +145,9 @@ Edits to route config do **not** retroactively change existing relay records.
 
 ---
 
-## Observability & Logging
+## Observability
 
-All relay transactions — including request metadata, payloads, response data, and failure causes — are fully logged.
-
-* Each relay maintains an auditable trail from creation to completion.
-* Retry attempts (for AutoRoute mode) are recorded and versioned under a unified history model for full traceability.
-* Logging includes execution mode, status transitions, and timing data for performance monitoring.
-
----
-
+All lifecycle and activity details are recorded directly in the `atlas_relays` table. Each relay entry captures inbound and outbound events, status transitions, retry counts, durations, responses, and failure reasons inline.
 ## Archiving & Retention
 
 Archived relays are stored in `atlas_relay_archives`, which mirrors the structure of `atlas_relays`. Automatic archiving and purging follow environment-configurable time windows.

@@ -161,18 +161,9 @@ Enums\RelayFailure
 | 206  | CONNECTION_TIMEOUT    | Outbound delivery timed out before receiving a response.            |
 | 207  | EXCEPTION             | Uncaught exception during event/dispatch execution.                 |
 
-## Observability & Logging
+## Observability
 
-* Each outbound record logs:
-    * Start and end timestamps
-    * Execution duration
-    * Attempt count
-    * Failure reason and retry count (if any)
-    * HTTP or event response payload
-* All logs link back to originating relay ID for traceability.
-
----
-
+All lifecycle and activity details are recorded directly in the `atlas_relays` table. Each relay entry captures inbound and outbound events, status transitions, retry counts, durations, responses, and failure reasons inline.
 ## Automation Jobs
 
 | Job                          | Frequency        | Description                                                        |

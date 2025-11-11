@@ -148,25 +148,14 @@ This ensures developer-defined logic always takes precedence over static configu
 
 ---
 
-## Observability & Logging
+## Observability
 
-* Every route resolution is logged with:
-
-    * Matched route ID or provider name
-    * Lookup source (cache, database, provider)
-    * Match duration and outcome
-    * Captured parameters
-* Route resolution logs are stored with the relay’s audit trail.
-
----
-
+All lifecycle and activity details are recorded directly in the `atlas_relays` table. Each relay entry captures inbound and outbound events, status transitions, retry counts, durations, responses, and failure reasons inline.
 ## Lifecycle Flow Summary
 
 **Captured → Queued → Processing → (Completed | Failed | Cancelled) → Archived**
 
 Each relay passes through a defined sequence of states that represent its progression from intake to resolution.
-
----
 
 ---
 
@@ -199,5 +188,5 @@ Each relay passes through a defined sequence of states that represent its progre
 * [PRD — Payload Capture](./PRD-Payload-Capture.md)
 * [PRD — Routing](./PRD-Routing.md)
 * [PRD — Outbound Delivery](./PRD-Outbound-Delivery.md)
-* [PRD — Archiving & Logging](./PRD-Archiving-and-Logging.md)
+* [PRD — Archiving](./PRD-Archiving-and-Logging.md)
 * [PRD — Example Usage](./PRD-Example-Usage.md)

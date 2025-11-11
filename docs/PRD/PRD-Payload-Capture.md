@@ -114,18 +114,9 @@ Enums\RelayFailure
 
 ---
 
-## Observability & Logging
+## Observability
 
-* Every capture logs request metadata, payload size, and processing duration.
-* Logs include:
-
-    * Capture start and completion times
-    * Route match status
-    * Failure reason (if applicable)
-* Captures are fully queryable by ID, status, and route association.
-
----
-
+All lifecycle and activity details are recorded directly in the `atlas_relays` table. Each relay entry captures inbound and outbound events, status transitions, retry counts, durations, responses, and failure reasons inline.
 ## Edge Cases & Behavior Rules
 
 * **Empty Body Requests:** Still stored with status `Queued` and `payload = {}`.
@@ -173,5 +164,5 @@ Each relay passes through a defined sequence of states that represent its progre
 * [PRD — Payload Capture](./PRD-Payload-Capture.md)
 * [PRD — Routing](./PRD-Routing.md)
 * [PRD — Outbound Delivery](./PRD-Outbound-Delivery.md)
-* [PRD — Archiving & Logging](./PRD-Archiving-and-Logging.md)
+* [PRD — Archiving](./PRD-Archiving-and-Logging.md)
 * [PRD — Example Usage](./PRD-Example-Usage.md)
