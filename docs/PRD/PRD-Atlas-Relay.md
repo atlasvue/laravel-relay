@@ -186,6 +186,7 @@ Archiving runs nightly at 10 PM EST; purging runs nightly at 11 PM EST.
 * Relay-level configuration is persisted on creation (from route defaults or API) and governs execution for the life of the relay.
 * Existing relays are immutable with respect to later route config changes.
 * All payloads are stored regardless of delivery success.
+* Malformed JSON bodies remain stored exactly as received and are flagged with `failure_reason = INVALID_PAYLOAD` for auditing.
 * The database remains the authoritative record for all relay activity.
 * Retry, delay, and timeout mechanisms are exclusive to AutoRoute-based deliveries.
 * All other relay types complete or fail based on execution or handler results.

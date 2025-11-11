@@ -47,6 +47,7 @@ Payloads may originate from external HTTP requests, internal dispatches, or prog
 * Maximum payload size: **64KB**.
 * If size exceeds this limit, the payload is rejected with `PAYLOAD_TOO_LARGE` and the record is marked `Failed`.
 * Empty payloads are permitted but still recorded with their metadata.
+* When JSON decoding fails, the raw request body is stored without normalization; status is set to `Failed` with `failure_reason = INVALID_PAYLOAD`.
 
 ### 4. Route Resolution
 
@@ -100,6 +101,7 @@ Enums\RelayFailure
 | 102  | NO_ROUTE_MATCH        | No matching route found for inbound path/method.                    |
 | 103  | CANCELLED             | Relay manually cancelled (applies when status = 4).                 |
 | 104  | ROUTE_TIMEOUT         | Time exceeded between inbound receipt and configured route timeout. |
+| 105  | INVALID_PAYLOAD       | Payload body failed JSON decoding; raw request stored and marked failed. |
 | 201  | OUTBOUND_HTTP_ERROR   | Outbound response returned a non-2xx HTTP status code.              |
 | 203  | TOO_MANY_REDIRECTS    | Redirect limit (3) exceeded during outbound request.                |
 | 204  | REDIRECT_HOST_CHANGED | Redirect attempted to a different host (security risk).             |
@@ -129,7 +131,7 @@ Enums\RelayFailure
 ## Edge Cases & Behavior Rules
 
 * **Empty Body Requests:** Still stored with status `Queued` and `payload = {}`.
-* **Malformed JSON:** Record captured but marked `Failed` with `INVALID_PAYLOAD`.
+* **Malformed JSON:** Raw request body stored without normalization; record captured but marked `Failed` with `INVALID_PAYLOAD`.
 * **Duplicate Requests:** Duplicates allowed but logged with deduplication token if provided.
 * **Concurrent Requests:** Atomic insertion ensures each capture event is isolated.
 
@@ -162,7 +164,6 @@ Each relay passes through a defined sequence of states that represent its progre
 
 ## Outstanding Questions / Clarifications
 
-* Should malformed JSON payloads be normalized (e.g., raw string storage) or rejected outright?
 * Should cached route lookups include wildcard domain support?
 * Should payload capture support content-types other than JSON (e.g., XML or form-encoded)?
 
