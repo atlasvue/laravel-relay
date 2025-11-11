@@ -6,7 +6,7 @@
 
 ## 🌍 Overview
 
-**Atlas Relay** is a Laravel package that provides a **complete relay system** for managing both **inbound and outbound webhooks**.  
+**Atlas Relay** is a Laravel package that provides a **complete relay system** for managing both **inbound and outbound webhooks**.
 
 It unifies webhook reception, processing, routing, and delivery into one lifecycle — ensuring every payload is captured, tracked, and delivered with full transparency.
 
@@ -22,6 +22,35 @@ Atlas Relay ensures:
 * Both **incoming and outgoing** requests share a single unified process.
 * Every transaction is **auditable, replayable, and reliable**.
 * The API supports **custom internal relays** or **HTTP dispatches** beyond webhooks.
+
+---
+
+## 🧰 Installation
+
+Install the package via Composer:
+
+```bash
+composer require atlasvue/atlas-relay
+```
+
+After installation, publish the configuration and migrations:
+
+```bash
+php artisan vendor:publish --tag=atlas-relay-config
+php artisan vendor:publish --tag=atlas-relay-migrations
+php artisan migrate
+```
+
+Finally, register the automation scheduler inside your `Console\Kernel`:
+
+```php
+use AtlasRelay\Support\RelayScheduler;
+
+protected function schedule(Schedule $schedule): void
+{
+    RelayScheduler::register($schedule);
+}
+```
 
 ---
 
