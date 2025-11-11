@@ -29,8 +29,6 @@ class RelayLifecycleService
             'processing_started_at' => $relay->processing_started_at ?? $now,
         ])->save();
 
-        $relay->refresh();
-
         Event::dispatch(new RelayAttemptStarted($relay));
 
         return $relay;
@@ -47,8 +45,6 @@ class RelayLifecycleService
             'completed_at' => $relay->completed_at ?? $now,
             'last_attempt_duration_ms' => $durationMs,
         ], $attributes))->save();
-
-        $relay->refresh();
 
         Event::dispatch(new RelayCompleted($relay, $durationMs));
 
@@ -71,8 +67,6 @@ class RelayLifecycleService
             'last_attempt_duration_ms' => $durationMs,
         ], $attributes))->save();
 
-        $relay->refresh();
-
         Event::dispatch(new RelayFailed($relay, $failure, $durationMs));
 
         return $relay;
@@ -86,7 +80,7 @@ class RelayLifecycleService
             'response_payload_truncated' => $truncated,
         ])->save();
 
-        return $relay->refresh();
+        return $relay;
     }
 
     public function cancel(Relay $relay, ?RelayFailure $reason = null): Relay
@@ -100,7 +94,7 @@ class RelayLifecycleService
             'retry_at' => null,
         ])->save();
 
-        return $relay->refresh();
+        return $relay;
     }
 
     public function replay(Relay $relay): Relay
@@ -120,7 +114,7 @@ class RelayLifecycleService
             'attempt_count' => 0,
         ])->save();
 
-        return $relay->refresh();
+        return $relay;
     }
 
     protected function now(): Carbon
