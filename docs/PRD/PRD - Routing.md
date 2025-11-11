@@ -84,6 +84,15 @@ When a relay calls `.dispatchAutoRoute()` or `.autoRouteImmediately()`, the syst
 
 #### AutoRouting Decision Tree
 
+**Relay Configuration Initialization**
+
+* When a route match occurs, the router **copies** route delivery defaults into the new relay record:
+    * `is_retry`, `retry_seconds`, `retry_max_attempts`
+    * `is_delay`, `delay_seconds`
+    * `timeout_seconds`, `http_timeout_seconds`
+* API-specified values on relay creation take precedence over route defaults.
+* Subsequent edits to the route do **not** affect existing relays.
+
 1. Find a route that matches the inbound method and path.
 2. Apply cached lookup if available (20-minute TTL).
 3. If matched:

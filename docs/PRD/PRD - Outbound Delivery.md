@@ -89,6 +89,13 @@ When a relay transitions from capture to outbound stage, a new record is created
 
 Outbound Delivery provides fault-tolerance mechanisms that apply to HTTP and Dispatch modes.
 
+**Configuration Precedence**
+
+1. **Relay-level fields (`atlas_relays`):** `is_retry`, `retry_seconds`, `retry_max_attempts`, `is_delay`, `delay_seconds`, `timeout_seconds`, `http_timeout_seconds`.
+2. **Route defaults:** used only to initialize the relay at creation (AutoRouting) when relay fields are not explicitly set by the API.
+
+Schedulers and workers must read values from the **relay record** at execution time.
+
 | Behavior    | Description                                                               |
 |-------------|---------------------------------------------------------------------------|
 | **Retry**   | Retries failed deliveries up to a defined maximum (`retry_max_attempts`). |

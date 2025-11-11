@@ -69,6 +69,18 @@ Archiving prevents data bloat by moving completed or failed relays (and associat
 
 ### 2. Archive Tables
 
+**Schema Parity Update:**
+
+Archive tables must include all relay configuration fields to maintain full data fidelity.
+The following configuration columns must exist in both active and archive schemas:
+* `is_retry`
+* `retry_seconds`
+* `retry_max_attempts`
+* `is_delay`
+* `delay_seconds`
+* `timeout_seconds`
+* `http_timeout_seconds`
+
 Archive tables mirror live schemas to ensure direct record mapping.
 
 | Archive Table              | Description                                            |
@@ -162,20 +174,3 @@ Reports can be exported for compliance or performance tracking.
 * Should archive logs be compressed or left in raw JSON for queryability?
 * Should external log sink support (e.g., CloudWatch, Loki) be part of core or separate extension?
 * Should purge operations support soft-delete with delayed permanent deletion?
-
-
----
-
-## Lifecycle Automation
-
-Atlas Relay includes background jobs to enforce lifecycle consistency and recovery for stuck or delayed relays.
-
-| Job                      | Frequency         | Description                                                         |
-|--------------------------|-------------------|---------------------------------------------------------------------|
-| **Retry Overdue**        | Every minute      | Retries relays with expired `retry_at` timestamps.                  |
-| **Requeue Stuck Relays** | Every 10 minutes  | Detects relays in `Processing` beyond threshold and re-queues them. |
-| **Timeout Enforcement**  | Hourly            | Marks relays exceeding configured timeouts as `Failed`.             |
-| **Archiving**            | Daily (10 PM EST) | Moves completed or failed relays to archive after retention period. |
-| **Purging**              | Daily (11 PM EST) | Removes archived relays older than purge threshold.                 |
-
----

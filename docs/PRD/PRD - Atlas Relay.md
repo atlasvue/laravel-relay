@@ -97,21 +97,28 @@ Every relay is tracked from start to finish using a unified **relay record** tha
 
 ### Table: `atlas_relays`
 
-| Field              | Type                                 | Description                                      |
-|--------------------|--------------------------------------|--------------------------------------------------|
-| `id`               | BIGINT                               | Primary key for each relay event.                |
-| `source`           | VARCHAR(255)                         | Source identifier (IP, origin, or system tag).   |
-| `headers`          | JSON                                 | Headers captured or applied to the relay.        |
-| `payload`          | JSON                                 | Full JSON payload captured.                      |
-| `status`           | TINYINT                              | Current lifecycle state (see below).             |
-| `mode`             | TINYINT (enum, `Enums\RelayMode`)    | Relay execution mode.                            |
-| `destination_url`  | VARCHAR(255)                         | Target endpoint for outbound or routed delivery. |
-| `response_status`  | INT (nullable)                       | HTTP status code received from destination.      |
-| `response_payload` | JSON (nullable)                      | Response body returned from destination.         |
-| `failure_reason`   | INT (nullable, `Enums\RelayFailure`) | Enum value describing reason for failure.        |
-| `retry_at`         | DATETIME (nullable)                  | Next retry timestamp if applicable.              |
-| `created_at`       | DATETIME                             | Record creation timestamp.                       |
-| `updated_at`       | DATETIME                             | Record last update timestamp.                    |
+| Field                  | Type                                 | Description                                                    |
+|------------------------|--------------------------------------|----------------------------------------------------------------|
+| `id`                   | BIGINT                               | Primary key for each relay event.                              |
+| `source`               | VARCHAR(255)                         | Source identifier (IP, origin, or system tag).                 |
+| `headers`              | JSON                                 | Headers captured or applied to the relay.                      |
+| `payload`              | JSON                                 | Full JSON payload captured.                                    |
+| `status`               | TINYINT                              | Current lifecycle state (see below).                           |
+| `mode`                 | TINYINT (enum, `Enums\RelayMode`)    | Relay execution mode.                                          |
+| `destination_url`      | VARCHAR(255)                         | Target endpoint for outbound or routed delivery.               |
+| `response_status`      | INT (nullable)                       | HTTP status code received from destination.                    |
+| `response_payload`     | JSON (nullable)                      | Response body returned from destination.                       |
+| `failure_reason`       | INT (nullable, `Enums\RelayFailure`) | Enum value describing reason for failure.                      |
+| `is_retry`             | BOOLEAN                              | Enables retries for this relay. Initialized from route or API. |
+| `retry_seconds`        | INT                                  | Seconds between retry attempts (supports ±25% jitter).         |
+| `retry_max_attempts`   | INT                                  | Maximum retry attempts (0 = infinite).                         |
+| `is_delay`             | BOOLEAN                              | Enables initial delivery delay for this relay.                 |
+| `delay_seconds`        | INT                                  | Number of seconds to delay before first attempt.               |
+| `timeout_seconds`      | INT                                  | Max seconds from capture to delivery start.                    |
+| `http_timeout_seconds` | INT                                  | Max seconds for outbound HTTP request.                         |
+| `retry_at`             | DATETIME (nullable)                  | Next retry timestamp if applicable.                            |
+| `created_at`           | DATETIME                             | Record creation timestamp.                                     |
+| `updated_at`           | DATETIME                             | Record last update timestamp.                                  |
 
 ### Relay Status Enum
 
@@ -142,6 +149,14 @@ All relay types — regardless of execution mode — are tracked through the sam
 ---
 
 ## Retry, Delay & Timeout Handling
+
+**Configuration Precedence**
+
+1. **Relay-level config (atlas_relays)** — source of truth used at execution time.
+2. **Route defaults** — copied into the relay record at creation when AutoRouting matches.
+3. **API-specified overrides** — caller may set relay config when creating a relay.
+
+Edits to route config do **not** retroactively change existing relay records.
 
 * Retry, delay, and timeout mechanisms apply **only** to relays executed through **AutoRoute** methods (`dispatchAutoRoute()` and `autoRouteImmediately()`).
 * Event-based and direct dispatch relays (`event()`, `dispatchEvent()`, and `http()->post()`) are **not retried** automatically.
@@ -219,6 +234,8 @@ Archiving runs nightly at 10 PM EST; purging runs nightly at 11 PM EST.
 
 ## Notes
 
+* Relay-level configuration is persisted on creation (from route defaults or API) and governs execution for the life of the relay.
+* Existing relays are immutable with respect to later route config changes.
 * All payloads are stored regardless of delivery success.
 * The database remains the authoritative record for all relay activity.
 * Retry, delay, and timeout mechanisms are exclusive to AutoRoute-based deliveries.
