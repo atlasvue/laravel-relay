@@ -11,7 +11,10 @@ use AtlasRelay\Routing\Router;
 use AtlasRelay\Routing\RouteResult;
 use AtlasRelay\Routing\RoutingException;
 use AtlasRelay\Services\RelayCaptureService;
+use AtlasRelay\Services\RelayDeliveryService;
 use AtlasRelay\Support\RelayContext;
+use AtlasRelay\Support\RelayHttpClient;
+use Illuminate\Bus\PendingChain;
 use Illuminate\Http\Request;
 
 /**
@@ -51,6 +54,7 @@ class RelayBuilder
     public function __construct(
         private readonly RelayCaptureService $captureService,
         private readonly Router $router,
+        private readonly RelayDeliveryService $deliveryService,
         ?Request $request = null,
         mixed $payload = null
     ) {
@@ -205,20 +209,20 @@ class RelayBuilder
         );
     }
 
-    public function event(callable $callback): self
+    public function event(callable $callback): mixed
     {
         $this->mode ??= 'event';
-        $this->ensureRelayCaptured();
+        $relay = $this->ensureRelayCaptured();
 
-        return $this;
+        return $this->deliveryService->executeEvent($relay, $callback);
     }
 
-    public function dispatchEvent(callable $callback): self
+    public function dispatchEvent(callable $callback): mixed
     {
         $this->mode ??= 'dispatch_event';
-        $this->ensureRelayCaptured();
+        $relay = $this->ensureRelayCaptured();
 
-        return $this;
+        return $this->deliveryService->executeEvent($relay, $callback);
     }
 
     public function dispatchAutoRoute(): self
@@ -231,36 +235,36 @@ class RelayBuilder
         return $this->handleAutoRoute('auto_route_immediate');
     }
 
-    public function http(): self
+    public function http(): RelayHttpClient
     {
         $this->mode ??= 'http';
-        $this->ensureRelayCaptured();
+        $relay = $this->ensureRelayCaptured();
 
-        return $this;
+        return $this->deliveryService->http($relay);
     }
 
-    public function dispatch(mixed $job): self
+    public function dispatch(mixed $job)
     {
         $this->mode ??= 'dispatch';
-        $this->ensureRelayCaptured();
+        $relay = $this->ensureRelayCaptured();
 
-        return $this;
+        return $this->deliveryService->dispatch($relay, $job);
     }
 
-    public function dispatchSync(mixed $job): self
+    public function dispatchSync(mixed $job): mixed
     {
         $this->mode ??= 'dispatch_sync';
-        $this->ensureRelayCaptured();
+        $relay = $this->ensureRelayCaptured();
 
-        return $this;
+        return $this->deliveryService->dispatchSync($relay, $job);
     }
 
-    public function dispatchChain(array $jobs): self
+    public function dispatchChain(array $jobs): PendingChain
     {
         $this->mode ??= 'dispatch_chain';
-        $this->ensureRelayCaptured();
+        $relay = $this->ensureRelayCaptured();
 
-        return $this;
+        return $this->deliveryService->dispatchChain($relay, $jobs);
     }
 
     private function handleAutoRoute(string $mode): self

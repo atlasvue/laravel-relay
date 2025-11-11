@@ -41,6 +41,12 @@ return [
         'cache_store' => env('ATLAS_RELAY_ROUTE_CACHE_STORE'),
     ],
 
+    'http' => [
+        'max_response_bytes' => env('ATLAS_RELAY_MAX_RESPONSE_BYTES', 16 * 1024),
+        'max_redirects' => env('ATLAS_RELAY_MAX_REDIRECTS', 3),
+        'enforce_https' => env('ATLAS_RELAY_ENFORCE_HTTPS', true),
+    ],
+
     'automation' => [
         'retry_overdue_cron' => env('ATLAS_RELAY_RETRY_CRON', '*/1 * * * *'),
         'stuck_requeue_cron' => env('ATLAS_RELAY_STUCK_CRON', '*/10 * * * *'),

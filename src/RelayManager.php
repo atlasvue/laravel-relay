@@ -8,6 +8,7 @@ use AtlasRelay\Contracts\RelayManagerInterface;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Routing\Router;
 use AtlasRelay\Services\RelayCaptureService;
+use AtlasRelay\Services\RelayDeliveryService;
 use AtlasRelay\Services\RelayLifecycleService;
 use Illuminate\Http\Request;
 
@@ -19,17 +20,18 @@ class RelayManager implements RelayManagerInterface
     public function __construct(
         private readonly RelayCaptureService $captureService,
         private readonly RelayLifecycleService $lifecycleService,
+        private readonly RelayDeliveryService $deliveryService,
         private readonly Router $router
     ) {}
 
     public function request(Request $request): RelayBuilder
     {
-        return new RelayBuilder($this->captureService, $this->router, $request);
+        return new RelayBuilder($this->captureService, $this->router, $this->deliveryService, $request);
     }
 
     public function payload(mixed $payload): RelayBuilder
     {
-        return (new RelayBuilder($this->captureService, $this->router))->payload($payload);
+        return (new RelayBuilder($this->captureService, $this->router, $this->deliveryService))->payload($payload);
     }
 
     public function cancel(Relay $relay): Relay
