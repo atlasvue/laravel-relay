@@ -97,21 +97,21 @@ Every relay is tracked from start to finish using a unified **relay record** tha
 
 ### Table: `atlas_relays`
 
-| Field              | Type                                             | Description                                      |
-|--------------------|--------------------------------------------------|--------------------------------------------------|
-| `id`               | BIGINT                                           | Primary key for each relay event.                |
-| `source`           | VARCHAR(255)                                     | Source identifier (IP, origin, or system tag).   |
-| `headers`          | JSON                                             | Headers captured or applied to the relay.        |
-| `payload`          | JSON                                             | Full JSON payload captured.                      |
-| `status`           | TINYINT                                          | Current lifecycle state (see below).             |
-| `mode`             | ENUM(`event`, `dispatch`, `autoroute`, `direct`) | Relay execution mode.                            |
-| `destination_url`  | VARCHAR(255)                                     | Target endpoint for outbound or routed delivery. |
-| `response_status`  | INT (nullable)                                   | HTTP status code received from destination.      |
-| `response_payload` | JSON (nullable)                                  | Response body returned from destination.         |
-| `failure_reason`   | VARCHAR(255, nullable)                           | Enum value describing reason for failure.        |
-| `retry_at`         | DATETIME (nullable)                              | Next retry timestamp if applicable.              |
-| `created_at`       | DATETIME                                         | Record creation timestamp.                       |
-| `updated_at`       | DATETIME                                         | Record last update timestamp.                    |
+| Field              | Type                                 | Description                                      |
+|--------------------|--------------------------------------|--------------------------------------------------|
+| `id`               | BIGINT                               | Primary key for each relay event.                |
+| `source`           | VARCHAR(255)                         | Source identifier (IP, origin, or system tag).   |
+| `headers`          | JSON                                 | Headers captured or applied to the relay.        |
+| `payload`          | JSON                                 | Full JSON payload captured.                      |
+| `status`           | TINYINT                              | Current lifecycle state (see below).             |
+| `mode`             | TINYINT (enum, `Enums\RelayMode`)    | Relay execution mode.                            |
+| `destination_url`  | VARCHAR(255)                         | Target endpoint for outbound or routed delivery. |
+| `response_status`  | INT (nullable)                       | HTTP status code received from destination.      |
+| `response_payload` | JSON (nullable)                      | Response body returned from destination.         |
+| `failure_reason`   | INT (nullable, `Enums\RelayFailure`) | Enum value describing reason for failure.        |
+| `retry_at`         | DATETIME (nullable)                  | Next retry timestamp if applicable.              |
+| `created_at`       | DATETIME                             | Record creation timestamp.                       |
+| `updated_at`       | DATETIME                             | Record last update timestamp.                    |
 
 ### Relay Status Enum
 
@@ -225,26 +225,3 @@ Archiving runs nightly at 10 PM EST; purging runs nightly at 11 PM EST.
 * All other relay types complete or fail based on execution or handler results.
 * Relay API provides a fluent, intuitive interface for developers while maintaining complete traceability.
 * All operations are idempotent — retries and replays must never duplicate side effects.
-
-
----
-
-## Lifecycle Flow Summary
-
-**Captured → Queued → Processing → (Completed | Failed | Cancelled) → Archived**
-
-Each relay passes through a defined sequence of states that represent its progression from intake to resolution.
-
----
-
-## Status Enum
-
-| Code | Status         | Description                                           |
-|------|----------------|-------------------------------------------------------|
-| 0    | **Queued**     | Relay awaiting processing.                            |
-| 1    | **Processing** | Relay in active execution (HTTP, Event, or Dispatch). |
-| 2    | **Failed**     | Execution encountered an error or timeout.            |
-| 3    | **Completed**  | Successfully executed and acknowledged.               |
-| 4    | **Cancelled**  | Manually stopped before or during execution.          |
-
----
