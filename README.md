@@ -6,20 +6,24 @@
 
 ## 🌍 Overview
 
-**Atlas Relay** is a Laravel package that provides a **complete relay system** for managing both **inbound and outbound webhooks**. It unifies webhook reception, processing, and delivery into one lifecycle — ensuring every payload is captured, tracked, and delivered with full transparency.
+**Atlas Relay** is a Laravel package that provides a **complete relay system** for managing both **inbound and outbound webhooks**.  
+It unifies webhook reception, processing, routing, and delivery into one lifecycle — ensuring every payload is captured, tracked, and delivered with full transparency.
 
 While designed for webhook orchestration, Atlas Relay’s fluent API can handle **any type of payload relay**, from internal events to external HTTP requests.
 
-### Why Atlas Relay?
+---
 
-Webhook handling is notoriously fragile — missing retries, inconsistent logging, and scattered error handling. Atlas Relay eliminates these pain points with a **durable, observable pipeline** that guarantees delivery and traceability.
+## 💡 Why Atlas Relay?
+
+Webhook handling is notoriously fragile — missing retries, inconsistent logging, and scattered error handling.  
+Atlas Relay eliminates these pain points with a **durable, observable pipeline** that guarantees delivery and traceability.
 
 Atlas Relay ensures:
 
 * Every webhook is **stored before delivery** — never lost or skipped.
 * Both **incoming and outgoing** requests share a single unified process.
 * Every transaction is **auditable, replayable, and reliable**.
-* The API can support **custom internal relays** or **HTTP dispatches** beyond webhooks.
+* The API supports **custom internal relays** or **HTTP dispatches** beyond webhooks.
 
 ---
 
@@ -27,7 +31,13 @@ Atlas Relay ensures:
 
 **Relay Flow:**
 
-`Request → Payload Capture → Event / Dispatch / AutoRoute → Delivery → Complete → Archive`
+`Request → Payload Capture → Routing → Outbound Delivery → Complete → Archive`
+
+Each stage of the lifecycle is defined in its own PRD:
+- [Payload Capture](./docs/PRD/PRD-Payload-Capture.md): receiving and validating data
+- [Routing](./docs/PRD/PRD-Routing.md): determining the correct destination
+- [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md): transmitting payloads and handling retries
+- [Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md): long-term retention and audit trails
 
 ### Key Principles
 
@@ -41,11 +51,11 @@ Atlas Relay ensures:
 ## ✨ Feature Highlights
 
 * Unified webhook lifecycle — capture, route, and deliver.
-* Receive and send webhooks through one consistent API.
+* Receive **and** send webhooks through one consistent API.
 * Auto-route inbound webhooks to external destinations.
-* Supports synchronous and asynchronous modes.
+* Supports synchronous and asynchronous relay modes.
 * Retry, delay, and timeout control for delivery reliability.
-* Built-in caching, logging, and archiving for scale.
+* Built-in caching, logging, and archiving for performance and scale.
 
 ---
 
@@ -54,88 +64,86 @@ Atlas Relay ensures:
 Atlas Relay exposes a fluent, chainable API that powers both **inbound and outbound webhook flows**.
 
 ### Example A — Capture + Event Execution
-
 ```php
 Relay::request($request)
     ->payload($payload)
     ->event(fn() => $this->handleEvent($payload));
 ```
-
-Captures an inbound webhook, stores it, executes a handler, and marks the relay complete.
+Captures an inbound webhook, stores it, executes a handler, and marks the relay complete.  
+(See [Payload Capture](./docs/PRD/PRD-Payload-Capture.md))
 
 ### Example B — Capture + Dispatch Event
-
 ```php
 Relay::request($request)
     ->payload($payload)
     ->dispatchEvent(fn() => $this->handleEvent($payload));
 ```
-
-Processes an inbound webhook asynchronously. Marks as complete once dispatched successfully.
+Processes an inbound webhook asynchronously. Marks as complete once dispatched successfully.  
+(Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
 
 ### Example C — Auto-Route Dispatch (Inbound → Outbound)
-
 ```php
 Relay::request($request)
     ->payload($payload)
     ->dispatchAutoRoute();
 ```
-
-Receives a webhook and automatically delivers it to the correct outbound destination using your configured routes.
+Receives a webhook and automatically delivers it to the correct outbound destination using your configured routes.  
+(Relates to [Routing](./docs/PRD/PRD-Routing.md))
 
 ### Example D — Auto-Route Immediate Delivery
-
 ```php
 Relay::request($request)
     ->payload($payload)
     ->autoRouteImmediately();
 ```
-
-Performs immediate inbound-to-outbound delivery, returning the response inline.
+Performs immediate inbound-to-outbound delivery, returning the response inline.  
+(Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
 
 ### Example E — Direct Outbound Webhook
-
 ```php
 Relay::payload($payload)
     ->http()
     ->post('https://api.example.com/webhooks');
 ```
-
-Sends an outbound webhook directly without route lookup.
+Sends an outbound webhook directly without route lookup.  
+(Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
 
 ---
 
 ## 🧠 Relay Lifecycle
 
-Every webhook or payload relay is tracked from start to finish in the `atlas_relays` table:
+Every webhook or payload relay is tracked from start to finish in the unified `atlas_relays` table:
 
 | Status         | Description                                 |
 |----------------|---------------------------------------------|
 | **Queued**     | Payload recorded and awaiting relay action. |
 | **Processing** | Relay executing or event dispatched.        |
-| **Failed**     | Error occurred, `failure_reason` recorded.  |
+| **Failed**     | Error occurred; `failure_reason` recorded.  |
 | **Completed**  | Relay finished successfully.                |
 | **Cancelled**  | Relay manually stopped before completion.   |
+
+Learn more in [PRD — Atlas Relay](./docs/PRD/PRD-Atlas-Relay.md).
 
 ---
 
 ## 🔁 Retry, Delay & Timeout Handling
 
-Retry logic applies to **AutoRoute** deliveries — especially useful for outbound webhooks.
+Retry logic applies to **AutoRoute** deliveries (typically outbound webhooks).
 
-* **Retry**: Failed deliveries reattempt after `retry_at`.
-* **Delay**: Postpones initial delivery by seconds.
-* **Timeout**: Fails relays exceeding duration limits.
+* **Retry** – Failed deliveries reattempt after `retry_at`.
+* **Delay** – Postpones initial delivery.
+* **Timeout** – Fails relays exceeding configured duration.
 
-Event-based and direct deliveries (`event()`, `dispatchEvent()`, `http()->post()`) complete immediately and are not retried.
+Details: [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md)
 
 ---
 
 ## 🧭 Routing Behavior
 
-* Maps inbound webhook routes to outbound destinations.
+* Matches inbound webhook routes to outbound destinations.
 * Supports dynamic paths like `/event/{CUSTOMER_ID}`.
-* 20-minute cache with auto-invalidation after route changes.
+* 20-minute route cache with automatic invalidation on configuration changes.  
+  (See [Routing](./docs/PRD/PRD-Routing.md))
 
 ---
 
@@ -148,7 +156,8 @@ All webhook activity — inbound and outbound — is fully logged:
 * Retry attempts and failure causes
 * Processing duration and timestamps
 
-Every relay is a complete, searchable audit trail of webhook traffic.
+Every relay becomes a searchable audit trail of webhook traffic.  
+For full schema and retention behavior, see [Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md).
 
 ---
 
@@ -159,7 +168,8 @@ Every relay is a complete, searchable audit trail of webhook traffic.
 | `ATLAS_RELAY_ARCHIVE_DAYS` | 30      | Days before relays move to archive.      |
 | `ATLAS_RELAY_PURGE_DAYS`   | 180     | Days before archived relays are deleted. |
 
-Archiving runs nightly at **10 PM EST**; purging at **11 PM EST**.
+Archiving runs nightly at **10 PM EST**, and purging at **11 PM EST**.  
+(Defined in [Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md))
 
 ---
 
@@ -172,6 +182,8 @@ Archiving runs nightly at **10 PM EST**; purging at **11 PM EST**.
 | Timeout enforcement  | Hourly           | Marks expired relays as failed.      |
 | Archiving            | Daily (10 PM)    | Moves completed relays to archive.   |
 | Purging              | Daily (11 PM)    | Removes expired archive data.        |
+
+See [Atlas Relay PRD](./docs/PRD/PRD-Atlas-Relay.md) for complete job automation details.
 
 ---
 
@@ -195,12 +207,13 @@ Archiving runs nightly at **10 PM EST**; purging at **11 PM EST**.
 | Timeout reached       | `CONNECTION_TIMEOUT`    |
 | Payload exceeds 64KB  | `PAYLOAD_TOO_LARGE`     |
 
+Error definitions and enums are in [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md).
+
 ---
 
 ## 🧪 Example Usage
 
 ### Receiving a Webhook and Forwarding Automatically
-
 ```php
 public function handle(Request $request)
 {
@@ -211,7 +224,6 @@ public function handle(Request $request)
 ```
 
 ### Sending an Outbound Webhook
-
 ```php
 Relay::payload(['status' => 'processed'])
     ->http()
@@ -219,7 +231,6 @@ Relay::payload(['status' => 'processed'])
 ```
 
 ### Internal Event Relay
-
 ```php
 Relay::payload(['id' => 42])
     ->dispatchEvent(fn() => ExampleJob::dispatch());
@@ -229,17 +240,16 @@ Relay::payload(['id' => 42])
 
 ## 🤝 Contributing
 
-Atlas Relay is designed for extensibility across webhook and payload delivery systems. Contributions to routing, visibility, or lifecycle handling are encouraged.
+Atlas Relay is designed for extensibility across webhook and payload delivery systems.  
+Contributions to routing, visibility, or lifecycle handling are encouraged.
 
 ### Local Setup
-
 ```bash
 composer install
 php artisan migrate
 ```
 
 Run tests:
-
 ```bash
 php artisan test
 ```
