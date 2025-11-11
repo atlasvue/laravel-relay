@@ -8,6 +8,11 @@ use AtlasRelay\Contracts\RelayManagerInterface;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Tests\TestCase;
 
+/**
+ * Ensures the lifecycle service can cancel relays and replay them back into the queue while clearing failure state.
+ *
+ * Defined by PRD: Atlas Relay — Lifecycle Flow Summary and Notes on retries and replays.
+ */
 class RelayLifecycleServiceTest extends TestCase
 {
     public function test_cancel_and_replay_flow(): void

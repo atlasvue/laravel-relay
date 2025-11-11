@@ -10,6 +10,11 @@ use AtlasRelay\Models\Relay as RelayModel;
 use AtlasRelay\Tests\TestCase;
 use RuntimeException;
 
+/**
+ * Confirms synchronous event deliveries mark relays completed on success, capture payload context, and map exceptions to failure reasons.
+ *
+ * Defined by PRD: Outbound Delivery — Event Mode and Failure Reason Enum.
+ */
 class EventDeliveryTest extends TestCase
 {
     public function test_event_completion_updates_relay_status(): void

@@ -8,6 +8,11 @@ use AtlasRelay\Models\Relay;
 use AtlasRelay\Tests\TestCase;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Confirms package migrations expose the lifecycle schema and configurable table names required for relays and archives.
+ *
+ * Defined by PRD: Payload Capture — Data Model; Archiving & Logging — Data Model and Configuration.
+ */
 class MigrationRegistrationTest extends TestCase
 {
     public function test_package_migrations_are_loadable(): void

@@ -9,6 +9,11 @@ use AtlasRelay\Models\RelayArchive;
 use AtlasRelay\Tests\TestCase;
 use Carbon\Carbon;
 
+/**
+ * Validates automation console commands for retrying, requeuing, timing out, archiving, and purging relays.
+ *
+ * Defined by PRD: Atlas Relay — Automation Jobs; Archiving & Logging — Archiving Process and Purge Process.
+ */
 class AutomationCommandsTest extends TestCase
 {
     protected function setUp(): void
