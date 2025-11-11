@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Facade;
  *
  * @method static RelayBuilder request(Request $request)
  * @method static RelayBuilder payload(mixed $payload)
+ * @method static \AtlasRelay\Models\Relay cancel(\AtlasRelay\Models\Relay $relay)
+ * @method static \AtlasRelay\Models\Relay replay(\AtlasRelay\Models\Relay $relay)
  */
 class Relay extends Facade
 {

@@ -10,6 +10,13 @@ use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
 abstract class TestCase extends OrchestraTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->artisan('migrate', ['--database' => 'testbench'])->run();
+    }
+
     protected function getPackageProviders($app): array
     {
         return [

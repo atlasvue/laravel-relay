@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AtlasRelay\Contracts;
 
+use AtlasRelay\Models\Relay;
 use AtlasRelay\RelayBuilder;
 use Illuminate\Http\Request;
 
@@ -16,4 +17,8 @@ interface RelayManagerInterface
     public function request(Request $request): RelayBuilder;
 
     public function payload(mixed $payload): RelayBuilder;
+
+    public function cancel(Relay $relay): Relay;
+
+    public function replay(Relay $relay): Relay;
 }

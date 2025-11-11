@@ -15,6 +15,19 @@ return [
         'chunk_size' => env('ATLAS_RELAY_ARCHIVE_CHUNK_SIZE', 500),
     ],
 
+    'capture' => [
+        'max_payload_bytes' => env('ATLAS_RELAY_MAX_PAYLOAD_BYTES', 64 * 1024),
+        'sensitive_headers' => [
+            'authorization',
+            'proxy-authorization',
+            'x-api-key',
+            'api-key',
+            'cookie',
+        ],
+        'header_whitelist' => [],
+        'masked_value' => env('ATLAS_RELAY_SENSITIVE_HEADER_MASK', '***'),
+    ],
+
     'lifecycle' => [
         'default_retry_seconds' => env('ATLAS_RELAY_DEFAULT_RETRY_SECONDS', 60),
         'default_retry_max_attempts' => env('ATLAS_RELAY_DEFAULT_RETRY_MAX_ATTEMPTS', 3),
