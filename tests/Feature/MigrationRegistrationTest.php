@@ -50,28 +50,22 @@ class MigrationRegistrationTest extends TestCase
             'http_timeout_seconds',
         ]));
 
-        $this->assertTrue(Schema::hasTable(config('atlas-relay.tables.relay_logs')));
         $this->assertTrue(Schema::hasTable(config('atlas-relay.tables.relay_archives')));
-        $this->assertTrue(Schema::hasTable(config('atlas-relay.tables.relay_log_archives')));
     }
 
     public function test_table_names_can_be_configured_via_config_file(): void
     {
         config()->set('atlas-relay.tables', [
             'relays' => 'custom_relays',
-            'relay_logs' => 'custom_relay_logs',
             'relay_routes' => 'custom_relay_routes',
             'relay_archives' => 'custom_relay_archives',
-            'relay_log_archives' => 'custom_relay_log_archives',
         ]);
 
         $this->artisan('migrate:fresh', ['--database' => 'testbench'])->run();
 
         $this->assertTrue(Schema::hasTable('custom_relays'));
-        $this->assertTrue(Schema::hasTable('custom_relay_logs'));
         $this->assertTrue(Schema::hasTable('custom_relay_routes'));
         $this->assertTrue(Schema::hasTable('custom_relay_archives'));
-        $this->assertTrue(Schema::hasTable('custom_relay_log_archives'));
 
         $this->assertFalse(Schema::hasTable('atlas_relays'));
         $this->assertSame('custom_relays', (new Relay())->getTable());

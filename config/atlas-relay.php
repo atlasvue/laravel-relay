@@ -5,10 +5,8 @@ declare(strict_types=1);
 return [
     'tables' => [
         'relays' => 'atlas_relays',
-        'relay_logs' => 'atlas_relay_logs',
         'relay_routes' => 'atlas_relay_routes',
         'relay_archives' => 'atlas_relay_archives',
-        'relay_log_archives' => 'atlas_relay_log_archives',
     ],
 
     'archiving' => [
