@@ -87,48 +87,16 @@ Relay::payload($payload)
 * **`event()` / `dispatchEvent()`** — Executes internal logic before completing relay lifecycle.
 * **`dispatchAutoRoute()`** — Uses existing domain/route configurations to determine delivery target.
 * **`autoRouteImmediately()`** — Performs synchronous routing and returns response inline.
-* **`http()`** — Allows direct delivery to external URLs without configured routes and wraps around laravel's `Http` facade.
+* **`http()`** — Allows direct delivery to external URLs **via Laravel’s `Http` facade** (thin wrapper) and records lifecycle.
+* **`dispatch()`** (via `dispatchEvent()` or explicit job dispatch) — Uses **Laravel’s native dispatch** with a thin wrapper/middleware to record lifecycle on completion/failure.
 
 ---
 
 ## Relay Tracking Model
 
-Every relay is tracked from start to finish using a unified **relay record** that represents the entire transaction.
+Every relay is tracked from start to finish using a unified **relay record** that represents the entire transaction. The authoritative schema for captured request, response, and reliability configuration lives in **Payload Capture PRD**.
 
-### Table: `atlas_relays`
-
-| Field                  | Type                                 | Description                                                    |
-|------------------------|--------------------------------------|----------------------------------------------------------------|
-| `id`                   | BIGINT                               | Primary key for each relay event.                              |
-| `source`               | VARCHAR(255)                         | Source identifier (IP, origin, or system tag).                 |
-| `headers`              | JSON                                 | Headers captured or applied to the relay.                      |
-| `payload`              | JSON                                 | Full JSON payload captured.                                    |
-| `status`               | TINYINT                              | Current lifecycle state (see below).                           |
-| `mode`                 | TINYINT (enum, `Enums\RelayMode`)    | Relay execution mode.                                          |
-| `destination_url`      | VARCHAR(255)                         | Target endpoint for outbound or routed delivery.               |
-| `response_status`      | INT (nullable)                       | HTTP status code received from destination.                    |
-| `response_payload`     | JSON (nullable)                      | Response body returned from destination.                       |
-| `failure_reason`       | INT (nullable, `Enums\RelayFailure`) | Enum value describing reason for failure.                      |
-| `is_retry`             | BOOLEAN                              | Enables retries for this relay. Initialized from route or API. |
-| `retry_seconds`        | INT                                  | Seconds between retry attempts (supports ±25% jitter).         |
-| `retry_max_attempts`   | INT                                  | Maximum retry attempts (0 = infinite).                         |
-| `is_delay`             | BOOLEAN                              | Enables initial delivery delay for this relay.                 |
-| `delay_seconds`        | INT                                  | Number of seconds to delay before first attempt.               |
-| `timeout_seconds`      | INT                                  | Max seconds from capture to delivery start.                    |
-| `http_timeout_seconds` | INT                                  | Max seconds for outbound HTTP request.                         |
-| `retry_at`             | DATETIME (nullable)                  | Next retry timestamp if applicable.                            |
-| `created_at`           | DATETIME                             | Record creation timestamp.                                     |
-| `updated_at`           | DATETIME                             | Record last update timestamp.                                  |
-
-### Relay Status Enum
-
-| Value | Name           | Description                                                      |
-|-------|----------------|------------------------------------------------------------------|
-| 0     | **Queued**     | Payload recorded and awaiting relay action.                      |
-| 1     | **Processing** | Relay is being executed or event dispatched.                     |
-| 2     | **Failed**     | Delivery failed or error occurred. `failure_reason` must be set. |
-| 3     | **Completed**  | Delivery or event completed successfully.                        |
-| 4     | **Cancelled**  | Relay manually stopped before completion.                        |
+**See:** [PRD — Payload Capture](./PRD-Payload-Capture.md) for the complete `atlas_relays` schema (including `response_status`, `response_payload`, retry/delay/timeout fields, and `retry_at`).
 
 ---
 
@@ -212,48 +180,13 @@ Archiving runs nightly at 10 PM EST; purging runs nightly at 11 PM EST.
 
 ---
 
-## Error Mapping
-
-| Condition                     | Result                                   |
-|-------------------------------|------------------------------------------|
-| HTTP response not 2xx         | `failure_reason = HTTP_ERROR`            |
-| Redirect loop or >3 redirects | `failure_reason = TOO_MANY_REDIRECTS`    |
-| Redirect host change          | `failure_reason = REDIRECT_HOST_CHANGED` |
-| Timeout reached               | `failure_reason = CONNECTION_TIMEOUT`    |
-| Payload exceeds 64KB          | `failure_reason = PAYLOAD_TOO_LARGE`     |
-
----
-
-## Dependencies & References
-
-* **Depends on:** [PRD — Payload Capture](./PRD-Payload-Capture.md), [PRD — Routing](./PRD-Routing.md)
-* **Uses:** [PRD — Atlas Relay](./PRD-Atlas-Relay.md) internal queue and async processing
-
----
-
-## Enum Namespace
-
-* Enums belong to the Atlas Relay package namespace (`Enums`) rather than the host application's namespace.
-* All enum references (e.g., `Enums\RelayMode`, `Enums\RelayFailure`) are defined within the package for consistency.
-
----
-
 ## Notes
 
+* **HTTP and Dispatch are Laravel‑native wrappers**: callers retain complete access to Laravel’s `Http` and job APIs; Atlas Relay layers **non‑intrusive interception** to record lifecycle and map failures before returning control to the caller.
 * Relay-level configuration is persisted on creation (from route defaults or API) and governs execution for the life of the relay.
 * Existing relays are immutable with respect to later route config changes.
 * All payloads are stored regardless of delivery success.
 * The database remains the authoritative record for all relay activity.
 * Retry, delay, and timeout mechanisms are exclusive to AutoRoute-based deliveries.
 * All other relay types complete or fail based on execution or handler results.
-* Relay API provides a fluent, intuitive interface for developers while maintaining complete traceability.
 * All operations are idempotent — retries and replays must never duplicate side effects.
-
----
-
-### See Also
-* [PRD — Atlas Relay](./PRD-Atlas-Relay.md)
-* [PRD — Payload Capture](./PRD-Payload-Capture.md)
-* [PRD — Routing](./PRD-Routing.md)
-* [PRD — Outbound Delivery](./PRD-Outbound-Delivery.md)
-* [PRD — Archiving & Logging](./PRD-Archiving-and-Logging.md)

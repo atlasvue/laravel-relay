@@ -40,6 +40,16 @@ Each outbound operation is linked to a single `atlas_relays` record. A relay may
 
 ---
 
+### 2. Laravel‑Native Wrappers (Design Intent)
+
+Atlas Relay’s **HTTP** and **Dispatch** features are **thin wrappers** over Laravel’s native capabilities to avoid new or unfamiliar APIs while preserving **full user control**:
+
+* **HTTP wrapper:** delegates to Laravel’s `Http` facade under the hood. All standard options (headers, query, body, middleware, retries/backoff, etc.) remain available to callers. Atlas Relay **intercepts results and exceptions** to record lifecycle state before the response is returned to the caller.
+* **Dispatch wrapper:** delegates to Laravel job dispatch (`dispatch()`, `dispatchSync()`, `Bus::dispatch()`). Jobs remain first‑class user code. Atlas Relay **attaches job middleware/wrappers** to capture **success/failure** and update the relay lifecycle automatically.
+
+> Goal: **Native ergonomics, zero new concepts**, while ensuring **automatic lifecycle tracking**.
+
+---
 
 ### 3. Outbound Execution Rules
 
@@ -50,6 +60,16 @@ Each outbound operation is linked to a single `atlas_relays` record. A relay may
 * Merges headers from relay, route, and domain configurations.
 * HTTPS is mandatory; non-secure targets are rejected.
 * Redirects limited to 3; host changes are disallowed.
+
+**HTTP Interception & Lifecycle Tracking**
+
+* The HTTP wrapper **executes the request via `Http`** and **captures outcome first**, then returns the response to the caller.
+* On completion, it records:
+    * `response_status` (HTTP status code)
+    * `response_payload` (response body, truncated per storage rules if applicable)
+    * timing/attempt metadata and any redirects encountered
+* On exception (network/SSL/DNS/timeout), it maps the error to `Enums\RelayFailure` and updates the relay to `Failed` **before** propagating or returning standardized error info.
+* When called in **synchronous** flows (e.g., `autoRouteImmediately()`), interception ensures the relay status is finalized prior to returning control to the consumer.
 
 #### Event Mode
 
@@ -62,6 +82,15 @@ Each outbound operation is linked to a single `atlas_relays` record. A relay may
 * Dispatches an asynchronous job (implements `ShouldQueue`).
 * The relay remains in `Processing` until the dispatched job reports success or failure.
 * Supports Laravel’s queue retry and backoff configurations.
+
+**Dispatch Wrapper & Lifecycle Tracking**
+
+Atlas Relay attaches **job middleware / a small wrapper** to preserve native job ergonomics while guaranteeing lifecycle tracking:
+
+* On **successful job completion**, the wrapper marks the originating relay **`Completed`** and records duration/attempts.
+* On **job failure** (exception or exceeded attempts), the wrapper sets status **`Failed`** with mapped `failure_reason` and prepares retry if configured.
+* For **manual failure signaling**, jobs may call a small helper to set a specific `failure_reason` while still allowing native exception handling.
+* Wrapper MUST be non‑intrusive: it **does not change** user job signatures and **does not require** custom base classes.
 
 ---
 
@@ -131,10 +160,10 @@ Enums\RelayFailure
 | 205  | CONNECTION_ERROR      | Outbound delivery failed due to network, SSL, or DNS issues.        |
 | 206  | CONNECTION_TIMEOUT    | Outbound delivery timed out before receiving a response.            |
 | 207  | EXCEPTION             | Uncaught exception during event/dispatch execution.                 |
+
 ## Observability & Logging
 
 * Each outbound record logs:
-
     * Start and end timestamps
     * Execution duration
     * Attempt count
@@ -180,6 +209,7 @@ Archiving runs nightly at 10 PM EST; purging at 11 PM EST.
 * Outbound results must be auditable and queryable per relay.
 * HTTP targets must use HTTPS; redirects and cross-domain hops are blocked.
 * Dispatch and Event modes share the same observability pipeline for unified tracking.
+* **Wrappers are non‑intrusive:** callers retain full control over Laravel’s `Http` and job features; Atlas Relay only intercepts to **guarantee lifecycle updates**.
 
 ---
 
@@ -188,12 +218,3 @@ Archiving runs nightly at 10 PM EST; purging at 11 PM EST.
 * Should event and dispatch failures follow the same retry policy as HTTP requests?
 * Should outbound fan-out (multiple destinations per relay) be supported in core, or as an extension?
 * Should outbound results be summarized into a single relay status or multiple partial states?
-
----
-
-### See Also
-* [PRD — Atlas Relay](./PRD-Atlas-Relay.md)
-* [PRD — Payload Capture](./PRD-Payload-Capture.md)
-* [PRD — Routing](./PRD-Routing.md)
-* [PRD — Outbound Delivery](./PRD-Outbound-Delivery.md)
-* [PRD — Archiving & Logging](./PRD-Archiving-and-Logging.md)
