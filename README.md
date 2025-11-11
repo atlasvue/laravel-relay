@@ -246,6 +246,13 @@ php artisan test
 
 ---
 
+## 👥 Contributors
+
+We welcome collaboration from contributors and agents helping improve Atlas Relay’s ecosystem.  
+See the [AGENTS.md](./AGENTS.md) file to learn more about how to participate.
+
+---
+
 ## 📘 License
 
 Atlas Relay is open-source software licensed under the [MIT license](./LICENSE).
