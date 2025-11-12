@@ -68,7 +68,7 @@ All payloads are persisted to the `atlas_relays` table (shared lifecycle model) 
 | `request_source` | Origin source (IP, system name, or identifier).                     |
 | `headers`        | Normalized header JSON.                                             |
 | `payload`        | Captured JSON payload.                                              |
-| `status`         | Lifecycle state (Queued, Processing, Failed, Completed, Cancelled). |
+| `status`         | Lifecycle state stored as `RelayStatus` (Queued, Processing, Completed, Failed, Cancelled). |
 | `mode`           | Relay mode (event, dispatch, autoroute, direct).                    |
 | `failure_reason` | Enum describing reason for capture failure, if applicable.          |
 | `created_at`     | Timestamp of capture.                                               |
@@ -76,9 +76,10 @@ All payloads are persisted to the `atlas_relays` table (shared lifecycle model) 
 
 ### 6. Status Handling
 
-* All new captures begin with `status = Queued`.
+* All new captures begin with `status = RelayStatus::QUEUED` (stored as `0`).
 * Status changes occur automatically through relay lifecycle transitions.
 * If capture validation fails (e.g., payload too large, blocked source), status is immediately set to `Failed`.
+* Database column is an **UNSIGNED TINYINT** backed by the PHP enum `Enums\RelayStatus`.
 
 ---
 
@@ -99,7 +100,7 @@ Enums\RelayFailure
 | 100  | UNKNOWN               | Unexpected or uncategorized error.                                  |
 | 101  | PAYLOAD_TOO_LARGE     | Payload exceeds size limit (64KB). Not retried.                     |
 | 102  | NO_ROUTE_MATCH        | No matching route found for inbound path/method.                    |
-| 103  | CANCELLED             | Relay manually cancelled (applies when status = 4).                 |
+| 103  | CANCELLED             | Relay manually cancelled (applies when status = `RelayStatus::CANCELLED`, value `4`). |
 | 104  | ROUTE_TIMEOUT         | Time exceeded between inbound receipt and configured route timeout. |
 | 105  | INVALID_PAYLOAD       | Payload body failed JSON decoding; raw request stored and marked failed. |
 | 201  | OUTBOUND_HTTP_ERROR   | Outbound response returned a non-2xx HTTP status code.              |

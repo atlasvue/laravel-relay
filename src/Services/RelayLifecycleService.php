@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Services;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Events\RelayAttemptStarted;
 use AtlasRelay\Events\RelayCompleted;
 use AtlasRelay\Events\RelayFailed;
@@ -22,7 +23,7 @@ class RelayLifecycleService
         $now = $this->now();
 
         $relay->forceFill([
-            'status' => 'processing',
+            'status' => RelayStatus::PROCESSING,
             'attempt_count' => ($relay->attempt_count ?? 0) + 1,
             'first_attempted_at' => $relay->first_attempted_at ?? $now,
             'last_attempted_at' => $now,
@@ -42,7 +43,7 @@ class RelayLifecycleService
         $now = $this->now();
 
         $relay->forceFill(array_merge([
-            'status' => 'completed',
+            'status' => RelayStatus::COMPLETED,
             'failure_reason' => null,
             'processing_finished_at' => $now,
             'completed_at' => $relay->completed_at ?? $now,
@@ -66,7 +67,7 @@ class RelayLifecycleService
         $now = $this->now();
 
         $relay->forceFill(array_merge([
-            'status' => 'failed',
+            'status' => RelayStatus::FAILED,
             'failure_reason' => $failure->value,
             'failed_at' => $relay->failed_at ?? $now,
             'processing_finished_at' => $now,
@@ -92,7 +93,7 @@ class RelayLifecycleService
     public function cancel(Relay $relay, ?RelayFailure $reason = null): Relay
     {
         $relay->forceFill([
-            'status' => 'cancelled',
+            'status' => RelayStatus::CANCELLED,
             'failure_reason' => ($reason ?? RelayFailure::CANCELLED)->value,
             'cancelled_at' => $this->now(),
             'failed_at' => null,
@@ -106,7 +107,7 @@ class RelayLifecycleService
     public function replay(Relay $relay): Relay
     {
         $relay->forceFill([
-            'status' => 'queued',
+            'status' => RelayStatus::QUEUED,
             'failure_reason' => null,
             'archived_at' => null,
             'cancelled_at' => null,

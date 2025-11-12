@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Contracts\RelayManagerInterface;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Tests\TestCase;
 
@@ -23,11 +24,11 @@ class RelayLifecycleServiceTest extends TestCase
         $manager = app(RelayManagerInterface::class);
 
         $cancelled = $manager->cancel($relay);
-        $this->assertSame('cancelled', $cancelled->status);
+        $this->assertSame(RelayStatus::CANCELLED, $cancelled->status);
         $this->assertNotNull($cancelled->cancelled_at);
 
         $replayed = $manager->replay($cancelled);
-        $this->assertSame('queued', $replayed->status);
+        $this->assertSame(RelayStatus::QUEUED, $replayed->status);
         $this->assertNull($replayed->failure_reason);
         $this->assertNull($replayed->cancelled_at);
         $this->assertSame(0, $replayed->attempt_count);

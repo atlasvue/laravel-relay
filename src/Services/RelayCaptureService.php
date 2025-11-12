@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Services;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Events\RelayCaptured;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Support\RelayContext;
@@ -49,7 +50,7 @@ class RelayCaptureService
         $payloadBytes = $this->payloadSize($payload);
 
         if ($payloadBytes > $maxBytes) {
-            $status = 'failed';
+            $status = RelayStatus::FAILED;
             $failureReason = RelayFailure::PAYLOAD_TOO_LARGE;
             $payload = null;
             $validationErrors = $this->appendValidationError(
@@ -82,7 +83,8 @@ class RelayCaptureService
         Event::dispatch(new RelayCaptured($relay));
         Log::info('atlas-relay:capture', [
             'relay_id' => $relay->id,
-            'status' => $relay->status,
+            'status' => $relay->status->label(),
+            'status_code' => $relay->status->value,
             'mode' => $relay->mode,
         ]);
 
@@ -245,7 +247,7 @@ class RelayCaptureService
      * @param  array<string, array<int, string>>  $validationErrors
      * @return array{
      *     payload: mixed,
-     *     status: ?string,
+     *     status: ?RelayStatus,
      *     failureReason: ?RelayFailure,
      *     validationErrors: array<string, array<int, string>>
      * }
@@ -290,7 +292,7 @@ class RelayCaptureService
 
             return [
                 'payload' => $rawBody,
-                'status' => 'failed',
+                'status' => RelayStatus::FAILED,
                 'failureReason' => RelayFailure::INVALID_PAYLOAD,
                 'validationErrors' => $validationErrors,
             ];

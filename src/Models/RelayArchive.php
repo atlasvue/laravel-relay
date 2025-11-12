@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AtlasRelay\Models;
 
+use AtlasRelay\Enums\RelayStatus;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -19,6 +20,7 @@ class RelayArchive extends AtlasModel
         'payload' => 'array',
         'response_payload' => 'array',
         'meta' => 'array',
+        'status' => RelayStatus::class,
         'is_retry' => 'boolean',
         'is_delay' => 'boolean',
         'response_payload_truncated' => 'boolean',

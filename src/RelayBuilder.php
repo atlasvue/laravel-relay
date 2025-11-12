@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Routing\RouteContext as RoutingContext;
 use AtlasRelay\Routing\Router;
@@ -40,7 +41,7 @@ class RelayBuilder
 
     private ?RelayFailure $failureReason = null;
 
-    private string $status = 'queued';
+    private RelayStatus $status = RelayStatus::QUEUED;
 
     private ?Relay $capturedRelay = null;
 
@@ -162,7 +163,7 @@ class RelayBuilder
         return $this;
     }
 
-    public function failWith(RelayFailure $failure, string $status = 'failed'): self
+    public function failWith(RelayFailure $failure, RelayStatus $status = RelayStatus::FAILED): self
     {
         $this->failureReason = $failure;
         $this->status = $status;
@@ -170,7 +171,7 @@ class RelayBuilder
         return $this;
     }
 
-    public function status(string $status): self
+    public function status(RelayStatus $status): self
     {
         $this->status = $status;
 
@@ -283,7 +284,7 @@ class RelayBuilder
             $routeResult = $this->router->resolve($this->buildRouteContext());
             $this->applyRouteResult($routeResult);
             $this->mode ??= $mode;
-            $this->status = 'queued';
+            $this->status = RelayStatus::QUEUED;
         } catch (RoutingException $exception) {
             $this->mode ??= $mode;
             $this->failWith($exception->failure);

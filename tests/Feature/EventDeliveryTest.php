@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Exceptions\RelayJobFailedException;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Jobs\DispatchRelayEventJob;
@@ -31,7 +32,7 @@ class EventDeliveryTest extends TestCase
         $this->assertSame('ok', $result);
         $relay = $this->assertRelayInstance($builder->relay());
 
-        $this->assertSame('completed', $relay->status);
+        $this->assertSame(RelayStatus::COMPLETED, $relay->status);
         $this->assertNull($relay->failure_reason);
     }
 
@@ -59,7 +60,7 @@ class EventDeliveryTest extends TestCase
             $this->fail('Expected exception was not thrown.');
         } catch (RuntimeException) {
             $relay = $this->assertRelayInstance($builder->relay());
-            $this->assertSame('failed', $relay->status);
+            $this->assertSame(RelayStatus::FAILED, $relay->status);
             $this->assertSame(RelayFailure::EXCEPTION->value, $relay->failure_reason);
         }
     }
@@ -106,7 +107,7 @@ class EventDeliveryTest extends TestCase
         Queue::assertPushed(DispatchRelayEventJob::class);
 
         $relay = $this->assertRelayInstance($builder->relay());
-        $this->assertSame('queued', $relay->status);
+        $this->assertSame(RelayStatus::QUEUED, $relay->status);
 
         $capturedJob = null;
 
@@ -128,7 +129,7 @@ class EventDeliveryTest extends TestCase
 
         $relay->refresh();
 
-        $this->assertSame('completed', $relay->status);
+        $this->assertSame(RelayStatus::COMPLETED, $relay->status);
         $this->assertNull($relay->failure_reason);
     }
 
@@ -178,7 +179,7 @@ class EventDeliveryTest extends TestCase
         });
 
         $relay = $this->assertRelayInstance($builder->relay());
-        $this->assertSame('queued', $relay->status);
+        $this->assertSame(RelayStatus::QUEUED, $relay->status);
 
         $capturedJob = null;
 
@@ -205,7 +206,7 @@ class EventDeliveryTest extends TestCase
 
         $relay->refresh();
 
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::INVALID_PAYLOAD->value, $relay->failure_reason);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Console\Commands;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Events\AutomationMetrics;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Services\RelayLifecycleService;
@@ -33,7 +34,7 @@ class EnforceRelayTimeoutsCommand extends Command
         $count = 0;
 
         Relay::query()
-            ->where('status', 'processing')
+            ->where('status', RelayStatus::PROCESSING->value)
             ->whereNull('archived_at')
             ->whereNotNull('processing_started_at')
             ->orderBy('id')

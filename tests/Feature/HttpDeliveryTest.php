@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Exceptions\RelayHttpException;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Tests\TestCase;
@@ -42,7 +43,7 @@ class HttpDeliveryTest extends TestCase
         $this->assertTrue($response->successful());
 
         $relay = $this->assertRelayInstance($builder->relay());
-        $this->assertSame('completed', $relay->status);
+        $this->assertSame(RelayStatus::COMPLETED, $relay->status);
         $this->assertSame(200, $relay->response_status);
         $this->assertSame(['ok' => true], $relay->response_payload);
     }
@@ -60,7 +61,7 @@ class HttpDeliveryTest extends TestCase
         $this->assertFalse($response->successful());
 
         $relay = $this->assertRelayInstance($builder->relay());
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::OUTBOUND_HTTP_ERROR->value, $relay->failure_reason);
     }
 
@@ -91,7 +92,7 @@ class HttpDeliveryTest extends TestCase
         }
 
         $relay = $this->assertRelayInstance($builder->relay());
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::CONNECTION_TIMEOUT->value, $relay->failure_reason);
     }
 
@@ -126,7 +127,7 @@ class HttpDeliveryTest extends TestCase
         }
 
         $relay = $this->assertRelayInstance($builder->relay());
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::REDIRECT_HOST_CHANGED->value, $relay->failure_reason);
     }
 
@@ -159,7 +160,7 @@ class HttpDeliveryTest extends TestCase
             $method->invoke($client, 'https://example.com/start', $response, $relay, 25);
         } finally {
             $relay = $this->assertRelayInstance($builder->relay());
-            $this->assertSame('failed', $relay->status);
+            $this->assertSame(RelayStatus::FAILED, $relay->status);
             $this->assertSame(RelayFailure::TOO_MANY_REDIRECTS->value, $relay->failure_reason);
         }
     }
