@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Base model that reads its table name from the atlas-relay config map used by every PRD-driven data structure.
+ *
+ * Defined by PRD: Atlas Relay — Database Portability Requirements.
  */
 abstract class AtlasModel extends Model
 {

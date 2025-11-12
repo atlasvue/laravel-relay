@@ -100,6 +100,18 @@ Every relay is tracked from start to finish using a unified **relay record** tha
 
 ---
 
+## Database Portability Requirements
+
+Atlas Relay must remain installable inside applications that segment data across multiple database connections (e.g., central vs tenant):
+
+* Provide a publishable configuration key `atlas-relay.database.connection` (backed by `ATLAS_RELAY_DATABASE_CONNECTION`) that lets consumers choose the connection used for all Atlas Relay migrations and runtime models.
+* When the connection value is `null`, default to Laravel’s primary connection so the package works out-of-the-box.
+* All package migrations must resolve the Schema builder through this configured connection to ensure tables can be created/dropped on tenant-specific databases.
+* Base models must automatically read the same configuration so Eloquent queries always target the same database that owns the tables.
+* Automated tests must cover both the table-name overrides and the connection override path to prevent regressions.
+
+---
+
 ## Status Handling & Lifecycle Completion
 
 All relay types — regardless of execution mode — are tracked through the same status lifecycle.
