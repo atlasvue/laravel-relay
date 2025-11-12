@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
+use JsonException;
 
 /**
  * Handles persistence of relay capture metadata according to the Payload Capture PRD.
@@ -23,11 +24,26 @@ class RelayCaptureService
     public function capture(RelayContext $context): Relay
     {
         $request = $context->request;
-        $payload = $this->determinePayload($context);
+        $payload = $context->payload;
         $headers = $this->normalizeHeaders($request);
         $status = $context->status;
         $failureReason = $context->failureReason;
         $validationErrors = $context->validationErrors;
+
+        if ($payload === null && $request !== null) {
+            $extracted = $this->extractPayloadFromRequest($request, $validationErrors);
+
+            $payload = $extracted['payload'];
+            $validationErrors = $extracted['validationErrors'];
+
+            if ($extracted['status'] !== null) {
+                $status = $extracted['status'];
+            }
+
+            if ($extracted['failureReason'] !== null) {
+                $failureReason = $extracted['failureReason'];
+            }
+        }
 
         $maxBytes = (int) config('atlas-relay.capture.max_payload_bytes', 64 * 1024);
         $payloadBytes = $this->payloadSize($payload);
@@ -71,19 +87,6 @@ class RelayCaptureService
         ]);
 
         return $relay;
-    }
-
-    private function determinePayload(RelayContext $context): mixed
-    {
-        if ($context->payload !== null) {
-            return $context->payload;
-        }
-
-        if ($context->request !== null) {
-            return $context->request->all();
-        }
-
-        return null;
     }
 
     /**
@@ -236,5 +239,72 @@ class RelayCaptureService
         $errors[$field][] = $message;
 
         return $errors;
+    }
+
+    /**
+     * @param  array<string, array<int, string>>  $validationErrors
+     * @return array{
+     *     payload: mixed,
+     *     status: ?string,
+     *     failureReason: ?RelayFailure,
+     *     validationErrors: array<string, array<int, string>>
+     * }
+     */
+    private function extractPayloadFromRequest(Request $request, array $validationErrors): array
+    {
+        if (! $this->isJsonRequest($request)) {
+            return [
+                'payload' => $request->all(),
+                'status' => null,
+                'failureReason' => null,
+                'validationErrors' => $validationErrors,
+            ];
+        }
+
+        $rawBody = (string) $request->getContent();
+
+        if ($rawBody === '') {
+            return [
+                'payload' => $request->all(),
+                'status' => null,
+                'failureReason' => null,
+                'validationErrors' => $validationErrors,
+            ];
+        }
+
+        try {
+            $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+
+            return [
+                'payload' => $decoded,
+                'status' => null,
+                'failureReason' => null,
+                'validationErrors' => $validationErrors,
+            ];
+        } catch (JsonException $exception) {
+            $validationErrors = $this->appendValidationError(
+                $validationErrors,
+                'payload',
+                sprintf('Invalid JSON payload: %s', $exception->getMessage())
+            );
+
+            return [
+                'payload' => $rawBody,
+                'status' => 'failed',
+                'failureReason' => RelayFailure::INVALID_PAYLOAD,
+                'validationErrors' => $validationErrors,
+            ];
+        }
+    }
+
+    private function isJsonRequest(Request $request): bool
+    {
+        if ($request->isJson()) {
+            return true;
+        }
+
+        $contentType = $request->headers->get('content-type');
+
+        return $contentType !== null && str_contains(strtolower($contentType), 'json');
     }
 }

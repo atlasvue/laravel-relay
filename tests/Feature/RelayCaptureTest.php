@@ -101,4 +101,22 @@ class RelayCaptureTest extends TestCase
         $meta = $relay->meta ?? [];
         $this->assertSame('Invalid structure.', $meta['validation_errors']['payload'][0] ?? null);
     }
+
+    public function test_malformed_json_payload_marks_capture_failed(): void
+    {
+        $request = Request::create('/relay', 'POST', [], [], [], [], '{"foo": "bar"');
+        $request->headers->set('Content-Type', 'application/json');
+
+        $relay = Relay::request($request)->capture();
+
+        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayFailure::INVALID_PAYLOAD->value, $relay->failure_reason);
+        $this->assertSame('{"foo": "bar"', $relay->payload);
+        $meta = $relay->meta ?? [];
+        $this->assertArrayHasKey('validation_errors', $meta);
+        $this->assertStringContainsString(
+            'Invalid JSON payload',
+            $meta['validation_errors']['payload'][0] ?? ''
+        );
+    }
 }
