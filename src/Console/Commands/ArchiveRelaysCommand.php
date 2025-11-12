@@ -19,13 +19,24 @@ use Illuminate\Support\Facades\DB;
  */
 class ArchiveRelaysCommand extends Command
 {
-    protected $signature = 'atlas-relay:archive {--chunk=500 : Number of relays per chunk}';
+    protected $signature = 'atlas-relay:archive {--chunk= : Number of relays per chunk}';
 
     protected $description = 'Moves completed/failed relays into the archive table based on retention rules.';
 
+    protected function configure(): void
+    {
+        parent::configure();
+
+        if ($this->getDefinition()->hasOption('chunk')) {
+            $this->getDefinition()
+                ->getOption('chunk')
+                ->setDefault(config('atlas-relay.archiving.chunk_size', 500));
+        }
+    }
+
     public function handle(): int
     {
-        $chunkSize = (int) $this->option('chunk');
+        $chunkSize = (int) ($this->option('chunk') ?? config('atlas-relay.archiving.chunk_size', 500));
         $archiveAfterDays = (int) config('atlas-relay.archiving.archive_after_days', 30);
         $cutoff = Carbon::now()->subDays($archiveAfterDays);
 

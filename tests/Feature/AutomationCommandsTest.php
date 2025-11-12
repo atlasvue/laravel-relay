@@ -8,6 +8,7 @@ use AtlasRelay\Models\Relay;
 use AtlasRelay\Models\RelayArchive;
 use AtlasRelay\Tests\TestCase;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Validates automation console commands for retrying, requeuing, timing out, archiving, and purging relays.
@@ -108,5 +109,33 @@ class AutomationCommandsTest extends TestCase
         $this->runPendingCommand('atlas-relay:purge-archives')->assertExitCode(0);
 
         $this->assertDatabaseMissing(RelayArchive::query()->getModel()->getTable(), ['id' => $relay->id]);
+    }
+
+    public function test_archive_command_uses_configured_chunk_default_when_option_missing(): void
+    {
+        config(['atlas-relay.archiving.chunk_size' => 2]);
+
+        foreach (range(1, 3) as $index) {
+            Relay::query()->create([
+                'request_source' => 'cli',
+                'headers' => [],
+                'payload' => [],
+                'status' => 'completed',
+                'mode' => 'http',
+                'updated_at' => Carbon::now()->subDays(60)->subMinutes($index),
+                'created_at' => Carbon::now()->subDays(61)->subMinutes($index),
+            ]);
+        }
+
+        DB::connection()->enableQueryLog();
+
+        $this->runPendingCommand('atlas-relay:archive')->assertExitCode(0);
+
+        $queries = collect(DB::getQueryLog())->pluck('query');
+
+        $this->assertTrue(
+            $queries->contains(fn (string $query): bool => str_contains(strtolower($query), 'limit 2')),
+            'Expected archive command to query relays using configured chunk size of 2.'
+        );
     }
 }
