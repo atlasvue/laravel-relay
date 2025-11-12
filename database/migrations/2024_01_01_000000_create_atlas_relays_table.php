@@ -26,7 +26,6 @@ return new class extends Migration
             $table->string('destination_url')->nullable();
             $table->unsignedSmallInteger('response_status')->nullable();
             $table->json('response_payload')->nullable();
-            $table->boolean('response_payload_truncated')->default(false);
             $table->unsignedSmallInteger('failure_reason')->nullable();
             $table->boolean('is_retry')->default(false);
             $table->unsignedInteger('retry_seconds')->nullable();

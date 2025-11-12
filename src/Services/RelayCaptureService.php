@@ -81,7 +81,6 @@ class RelayCaptureService
             'failure_reason' => $failureReason?->value,
             'meta' => $this->buildMeta($context->meta, $validationErrors, $context->routeHeaders, $context->routeParameters),
             'response_payload' => null,
-            'response_payload_truncated' => false,
             'attempt_count' => Arr::get($context->lifecycle, 'attempt_count', 0),
             'route_id' => $context->routeId,
             'route_identifier' => $context->routeIdentifier,

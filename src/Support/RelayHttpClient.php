@@ -116,9 +116,9 @@ class RelayHttpClient
 
         $this->evaluateRedirects($url, $response, $relay, $duration);
 
-        [$payload, $truncated] = $this->normalizePayload($response);
+        $payload = $this->normalizePayload($response);
 
-        $this->lifecycle->recordResponse($relay, $response->status(), $payload, $truncated);
+        $this->lifecycle->recordResponse($relay, $response->status(), $payload);
 
         if ($response->successful()) {
             $this->lifecycle->markCompleted($relay, [], $duration);
@@ -199,22 +199,15 @@ class RelayHttpClient
             : $payload;
     }
 
-    /**
-     * @return array{0:mixed,1:bool}
-     */
-    private function normalizePayload(Response $response): array
+    private function normalizePayload(Response $response): mixed
     {
         $json = $response->json();
 
         if (is_array($json)) {
-            return [$json, false];
+            return $json;
         }
 
-        $body = $response->body();
-        $payload = $this->truncatePayload($body);
-        $truncated = strlen((string) $body) > strlen((string) ($payload ?? ''));
-
-        return [$payload, $truncated];
+        return $this->truncatePayload($response->body());
     }
 
     private function applyRedirectGuards(string $originalUrl, Relay $relay, float $startedAt): void

@@ -54,6 +54,7 @@ class RelayDeliveryService
         } catch (\Throwable $exception) {
             $duration = $this->durationSince($startedAt);
             $this->lifecycle->markFailed($relay, RelayFailure::EXCEPTION, [], $duration);
+            $this->lifecycle->recordExceptionResponse($relay, $exception);
 
             throw $exception;
         }
@@ -105,6 +106,7 @@ class RelayDeliveryService
         } catch (\Throwable $exception) {
             $duration = $this->durationSince($startedAt);
             $this->lifecycle->markFailed($relay, RelayFailure::EXCEPTION, [], $duration);
+            $this->lifecycle->recordExceptionResponse($relay, $exception);
 
             throw $exception;
         } finally {
@@ -272,7 +274,7 @@ class RelayDeliveryService
 
         $normalized = $this->normalizeEventResponse($response);
 
-        $this->lifecycle->recordResponse($relay, null, $normalized, false);
+        $this->lifecycle->recordResponse($relay, null, $normalized);
     }
 
     /**

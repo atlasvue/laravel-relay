@@ -46,7 +46,6 @@ class EventDeliveryTest extends TestCase
 
         $this->assertSame(['value' => 'ok'], $relay->response_payload);
         $this->assertNull($relay->response_status);
-        $this->assertFalse($relay->response_payload_truncated);
     }
 
     public function test_event_failure_sets_failure_reason(): void
@@ -62,6 +61,27 @@ class EventDeliveryTest extends TestCase
             $relay = $this->assertRelayInstance($builder->relay());
             $this->assertSame(RelayStatus::FAILED, $relay->status);
             $this->assertSame(RelayFailure::EXCEPTION->value, $relay->failure_reason);
+        }
+    }
+
+    public function test_event_failure_records_exception_payload(): void
+    {
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        try {
+            $builder->event(function (): void {
+                throw new RuntimeException('boom');
+            });
+            $this->fail('Expected exception was not thrown.');
+        } catch (RuntimeException) {
+            $relay = $this->assertRelayInstance($builder->relay());
+            $this->assertIsString($relay->response_payload);
+            $this->assertStringContainsString('RuntimeException', $relay->response_payload);
+            $this->assertStringContainsString('boom', $relay->response_payload);
+            $this->assertLessThanOrEqual(
+                (int) config('atlas-relay.lifecycle.exception_response_max_bytes'),
+                strlen($relay->response_payload)
+            );
         }
     }
 
@@ -165,7 +185,6 @@ class EventDeliveryTest extends TestCase
 
         $this->assertSame(['value' => 'queued-ok'], $relay->response_payload);
         $this->assertNull($relay->response_status);
-        $this->assertFalse($relay->response_payload_truncated);
     }
 
     public function test_dispatch_event_marks_failure_after_job_exception(): void
@@ -208,5 +227,49 @@ class EventDeliveryTest extends TestCase
 
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::INVALID_PAYLOAD->value, $relay->failure_reason);
+    }
+
+    public function test_dispatch_event_records_exception_payload_on_unhandled_error(): void
+    {
+        Queue::fake();
+
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        $builder->dispatchEvent(function (): void {
+            throw new RuntimeException('queued boom');
+        });
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $capturedJob = null;
+
+        Queue::assertPushed(DispatchRelayEventJob::class, function (DispatchRelayEventJob $job) use (&$capturedJob): bool {
+            $capturedJob = $job;
+
+            return true;
+        });
+
+        $this->assertNotNull($capturedJob);
+
+        $middleware = new RelayJobMiddleware($relay->id);
+        /** @var RelayDeliveryService $service */
+        $service = app(RelayDeliveryService::class);
+
+        try {
+            $middleware->handle($capturedJob, function (DispatchRelayEventJob $job) use ($service): void {
+                $job->handle($service);
+            });
+            $this->fail('Expected RuntimeException to be thrown.');
+        } catch (RuntimeException) {
+            // expected
+        }
+
+        $relay->refresh();
+
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
+        $this->assertSame(RelayFailure::EXCEPTION->value, $relay->failure_reason);
+        $this->assertIsString($relay->response_payload);
+        $this->assertStringContainsString('RuntimeException', $relay->response_payload);
+        $this->assertStringContainsString('queued boom', $relay->response_payload);
     }
 }

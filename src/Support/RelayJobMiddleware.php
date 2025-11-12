@@ -46,6 +46,7 @@ class RelayJobMiddleware
         } catch (\Throwable $exception) {
             $duration = $this->durationSince($startedAt);
             $lifecycle->markFailed($relay, RelayFailure::EXCEPTION, [], $duration);
+            $lifecycle->recordExceptionResponse($relay, $exception);
             RelayJobContext::clear();
 
             throw $exception;

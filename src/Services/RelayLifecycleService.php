@@ -12,6 +12,7 @@ use AtlasRelay\Events\RelayFailed;
 use AtlasRelay\Models\Relay;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
+use Throwable;
 
 /**
  * Provides lifecycle utilities for cancelling or replaying relays in accordance with PRD rules.
@@ -79,15 +80,22 @@ class RelayLifecycleService
         return $relay;
     }
 
-    public function recordResponse(Relay $relay, ?int $status, mixed $payload, bool $truncated = false): Relay
+    public function recordResponse(Relay $relay, ?int $status, mixed $payload): Relay
     {
         $relay->forceFill([
             'response_status' => $status,
             'response_payload' => $payload,
-            'response_payload_truncated' => $truncated,
         ])->save();
 
         return $relay;
+    }
+
+    public function recordExceptionResponse(Relay $relay, Throwable $exception): Relay
+    {
+        $maxBytes = (int) config('atlas-relay.lifecycle.exception_response_max_bytes', 1024);
+        $summary = $this->formatExceptionSummary($exception);
+
+        return $this->recordResponse($relay, null, $this->truncateString($summary, $maxBytes));
     }
 
     public function cancel(Relay $relay, ?RelayFailure $reason = null): Relay
@@ -127,5 +135,71 @@ class RelayLifecycleService
     protected function now(): Carbon
     {
         return now();
+    }
+
+    private function formatExceptionSummary(Throwable $exception): string
+    {
+        $summary = sprintf(
+            '%s: %s in %s:%d',
+            $exception::class,
+            $exception->getMessage(),
+            $exception->getFile(),
+            $exception->getLine()
+        );
+
+        $trace = $exception->getTrace();
+
+        if ($trace === []) {
+            return $summary;
+        }
+
+        $frames = array_slice($trace, 0, 3, true);
+        $preview = [];
+
+        foreach ($frames as $index => $frame) {
+            $preview[] = $this->formatTraceFrame($frame, $index);
+        }
+
+        return $summary.PHP_EOL.implode(PHP_EOL, $preview);
+    }
+
+    /**
+     * @param  array{class?:string,type?:string,function?:string,file?:string,line?:int}  $frame
+     */
+    private function formatTraceFrame(array $frame, int $index): string
+    {
+        $callable = $frame['function'] ?? '[internal]';
+
+        if (isset($frame['class'])) {
+            $callable = ($frame['class']).($frame['type'] ?? '').$callable;
+        }
+
+        $location = '[internal]';
+
+        if (isset($frame['file'], $frame['line'])) {
+            $location = sprintf('%s:%s', $frame['file'], (string) $frame['line']);
+        }
+
+        return sprintf('#%d %s (%s)', $index, $callable, $location);
+    }
+
+    private function truncateString(string $value, int $maxBytes): string
+    {
+        if ($maxBytes <= 0) {
+            return '';
+        }
+
+        if (strlen($value) <= $maxBytes) {
+            return $value;
+        }
+
+        $suffix = '...';
+        $limit = max(0, $maxBytes - strlen($suffix));
+
+        $truncated = function_exists('mb_strcut')
+            ? (string) mb_strcut($value, 0, $limit, 'UTF-8')
+            : substr($value, 0, $limit);
+
+        return $truncated.$suffix;
     }
 }
