@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Exceptions\RelayHttpException;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Tests\TestCase;
 use GuzzleHttp\Promise\Create;
@@ -16,7 +17,6 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response as HttpClientResponse;
 use Illuminate\Support\Facades\Http;
 use ReflectionMethod;
-use RuntimeException;
 
 /**
  * Verifies HTTP deliveries enforce HTTPS, record responses, and translate transport conditions into relay failures.
@@ -68,7 +68,7 @@ class HttpDeliveryTest extends TestCase
     {
         $builder = Relay::payload(['status' => 'queued']);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(RelayHttpException::class);
 
         $builder->http()->post('http://insecure.test');
     }
@@ -120,8 +120,8 @@ class HttpDeliveryTest extends TestCase
 
         try {
             $builder->http()->post('https://example.com/redirect');
-            $this->fail('RuntimeException should have been thrown.');
-        } catch (RuntimeException $exception) {
+            $this->fail('RelayHttpException should have been thrown.');
+        } catch (RelayHttpException $exception) {
             $this->assertSame('Redirect attempted to a different host.', $exception->getMessage());
         }
 
@@ -154,8 +154,8 @@ class HttpDeliveryTest extends TestCase
 
         try {
             $method->invoke($client, 'https://example.com/start', $response, $relay, 25);
-            $this->fail('RuntimeException should have been thrown.');
-        } catch (RuntimeException $exception) {
+            $this->fail('RelayHttpException should have been thrown.');
+        } catch (RelayHttpException $exception) {
             $this->assertSame('Redirect limit exceeded for relay HTTP delivery.', $exception->getMessage());
         }
 
