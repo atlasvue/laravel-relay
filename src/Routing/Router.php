@@ -98,12 +98,6 @@ class Router
     {
         $routes = $this->rememberRoutesForMethod($method, $enabledOnly);
 
-        $staticRoutes = $routes['static'] ?? [];
-
-        if (isset($staticRoutes[$path])) {
-            return RouteResult::fromArray($staticRoutes[$path]);
-        }
-
         foreach ($routes['dynamic'] ?? [] as $route) {
             $parameters = $this->matchDynamicPath($route['path'], $path);
 
@@ -114,6 +108,12 @@ class Router
             return RouteResult::fromArray(array_merge(Arr::except($route, ['path']), [
                 'parameters' => $parameters,
             ]));
+        }
+
+        $staticRoutes = $routes['static'] ?? [];
+
+        if (isset($staticRoutes[$path])) {
+            return RouteResult::fromArray($staticRoutes[$path]);
         }
 
         return null;

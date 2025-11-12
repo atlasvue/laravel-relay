@@ -66,7 +66,7 @@ class AutoRoutingTest extends TestCase
         $this->assertSame('42', $meta['route_parameters']['LEAD_ID'] ?? null);
     }
 
-    public function test_static_routes_are_resolved_before_dynamic_patterns(): void
+    public function test_dynamic_routes_are_resolved_before_static_matches(): void
     {
         $dynamic = $this->createRoute([
             'identifier' => 'wildcard',
@@ -86,19 +86,11 @@ class AutoRoutingTest extends TestCase
                 ->relay()
         );
 
-        $this->assertSame($static->id, $relay->route_id);
-        $this->assertSame('https://example.com/orders-static', $relay->destination);
+        $this->assertSame($dynamic->id, $relay->route_id);
+        $this->assertSame('https://example.com/wildcard', $relay->destination);
 
-        $fallback = $this->assertRelayInstance(
-            Relay::request(Request::create('/anything', 'POST'))
-                ->dispatchAutoRoute()
-                ->relay()
-        );
-
-        $this->assertSame($dynamic->id, $fallback->route_id);
-        $this->assertSame('https://example.com/wildcard', $fallback->destination);
-        $meta = $fallback->meta ?? [];
-        $this->assertSame('anything', $meta['route_parameters']['slug'] ?? null);
+        $meta = $relay->meta ?? [];
+        $this->assertSame('orders', $meta['route_parameters']['slug'] ?? null);
     }
 
     public function test_programmatic_provider_precedence_and_caching_controls(): void
@@ -174,6 +166,27 @@ class AutoRoutingTest extends TestCase
     public function test_disabled_route_sets_failure_reason(): void
     {
         $this->createRoute([
+            'enabled' => false,
+        ]);
+
+        $relay = $this->assertRelayInstance(
+            Relay::request(Request::create('/orders', 'POST'))
+                ->dispatchAutoRoute()
+                ->relay()
+        );
+
+        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayFailure::ROUTE_DISABLED->value, $relay->failure_reason);
+        $meta = $relay->meta ?? [];
+        $this->assertArrayHasKey('route', $meta['validation_errors'] ?? []);
+    }
+
+    public function test_disabled_dynamic_route_sets_failure_reason(): void
+    {
+        $this->createRoute([
+            'identifier' => 'wildcard-disabled',
+            'path' => '/{slug}',
+            'destination' => 'https://example.com/wildcard-disabled',
             'enabled' => false,
         ]);
 
