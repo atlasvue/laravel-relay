@@ -6,6 +6,7 @@ namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Enums\RelayFailure;
 use AtlasRelay\Enums\RelayStatus;
+use AtlasRelay\Exceptions\InvalidDestinationUrlException;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Models\RelayRoute;
 use AtlasRelay\Routing\RouteContext;
@@ -54,7 +55,7 @@ class AutoRoutingTest extends TestCase
     {
         $this->createRoute([
             'path' => '/leads/{LEAD_ID:int}',
-            'destination' => 'https://example.com/leads',
+            'destination_url' => 'https://example.com/leads',
         ]);
 
         $relay = $this->assertRelayInstance(
@@ -72,13 +73,13 @@ class AutoRoutingTest extends TestCase
         $dynamic = $this->createRoute([
             'identifier' => 'wildcard',
             'path' => '/{slug}',
-            'destination' => 'https://example.com/wildcard',
+            'destination_url' => 'https://example.com/wildcard',
         ]);
 
         $static = $this->createRoute([
             'identifier' => 'orders-static',
             'path' => '/orders',
-            'destination' => 'https://example.com/orders-static',
+            'destination_url' => 'https://example.com/orders-static',
         ]);
 
         $relay = $this->assertRelayInstance(
@@ -88,7 +89,7 @@ class AutoRoutingTest extends TestCase
         );
 
         $this->assertSame($dynamic->id, $relay->route_id);
-        $this->assertSame('https://example.com/wildcard', $relay->destination);
+        $this->assertSame('https://example.com/wildcard', $relay->destination_url);
 
         $meta = $relay->meta ?? [];
         $this->assertSame('orders', $meta['route_parameters']['slug'] ?? null);
@@ -100,7 +101,7 @@ class AutoRoutingTest extends TestCase
         $router = app(Router::class);
         $provider = new class implements RoutingProviderInterface
         {
-            public string $destination = 'https://provider.test/one';
+            public string $destinationUrl = 'https://provider.test/one';
 
             public bool $shouldCache = true;
 
@@ -114,7 +115,7 @@ class AutoRoutingTest extends TestCase
                     id: null,
                     identifier: 'provider',
                     type: 'http',
-                    destination: $this->destination,
+                    destinationUrl: $this->destinationUrl,
                     headers: ['X-Provider' => 'yes']
                 );
             }
@@ -135,33 +136,33 @@ class AutoRoutingTest extends TestCase
         $request = Request::create('/anything', 'POST');
         $relay = $this->assertRelayInstance(Relay::request($request)->dispatchAutoRoute()->relay());
         $this->assertNull($relay->route_id);
-        $this->assertSame('https://provider.test/one', $relay->destination);
+        $this->assertSame('https://provider.test/one', $relay->destination_url);
 
-        $provider->destination = 'https://provider.test/two';
+        $provider->destinationUrl = 'https://provider.test/two';
         $cachedRelay = $this->assertRelayInstance(Relay::request($request)->dispatchAutoRoute()->relay());
-        $this->assertSame('https://provider.test/one', $cachedRelay->destination);
+        $this->assertSame('https://provider.test/one', $cachedRelay->destination_url);
 
         $router->flushCache();
         $refreshedRelay = $this->assertRelayInstance(Relay::request($request)->dispatchAutoRoute()->relay());
-        $this->assertSame('https://provider.test/two', $refreshedRelay->destination);
+        $this->assertSame('https://provider.test/two', $refreshedRelay->destination_url);
     }
 
     public function test_route_cache_is_invalidated_when_route_changes(): void
     {
         $route = $this->createRoute([
             'path' => '/cache-test',
-            'destination' => 'https://example.com/one',
+            'destination_url' => 'https://example.com/one',
         ]);
 
         $request = Request::create('/cache-test', 'POST');
         $first = $this->assertRelayInstance(Relay::request($request)->dispatchAutoRoute()->relay());
-        $this->assertSame('https://example.com/one', $first->destination);
+        $this->assertSame('https://example.com/one', $first->destination_url);
 
-        $route->destination = 'https://example.com/two';
+        $route->destination_url = 'https://example.com/two';
         $route->save();
 
         $second = $this->assertRelayInstance(Relay::request($request)->dispatchAutoRoute()->relay());
-        $this->assertSame('https://example.com/two', $second->destination);
+        $this->assertSame('https://example.com/two', $second->destination_url);
     }
 
     public function test_disabled_route_sets_failure_reason(): void
@@ -187,7 +188,7 @@ class AutoRoutingTest extends TestCase
         $this->createRoute([
             'identifier' => 'wildcard-disabled',
             'path' => '/{slug}',
-            'destination' => 'https://example.com/wildcard-disabled',
+            'destination_url' => 'https://example.com/wildcard-disabled',
             'enabled' => false,
         ]);
 
@@ -201,6 +202,17 @@ class AutoRoutingTest extends TestCase
         $this->assertSame(RelayFailure::ROUTE_DISABLED->value, $relay->failure_reason);
         $meta = $relay->meta ?? [];
         $this->assertArrayHasKey('route', $meta['validation_errors'] ?? []);
+    }
+
+    public function test_destination_url_longer_than_supported_limit_throws_exception(): void
+    {
+        $this->createRoute([
+            'destination_url' => 'https://example.com/'.str_repeat('a', 240),
+        ]);
+
+        $this->expectException(InvalidDestinationUrlException::class);
+
+        Relay::request(Request::create('/orders', 'POST'))->dispatchAutoRoute();
     }
 
     public function test_no_route_match_sets_failure_reason(): void
@@ -297,7 +309,7 @@ class AutoRoutingTest extends TestCase
             'method' => 'POST',
             'path' => '/orders',
             'type' => 'http',
-            'destination' => 'https://example.com/orders',
+            'destination_url' => 'https://example.com/orders',
             'headers' => [],
             'retry_policy' => null,
             'is_retry' => true,

@@ -7,6 +7,7 @@ namespace AtlasRelay\Services;
 use AtlasRelay\Enums\RelayFailure;
 use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Events\RelayCaptured;
+use AtlasRelay\Exceptions\InvalidDestinationUrlException;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Support\RelayContext;
 use Illuminate\Http\Request;
@@ -60,6 +61,16 @@ class RelayCaptureService
             );
         }
 
+        $destinationUrl = $context->destinationUrl;
+
+        if ($destinationUrl !== null) {
+            $length = strlen($destinationUrl);
+
+            if ($length > 255) {
+                throw InvalidDestinationUrlException::exceedsMaxLength($length);
+            }
+        }
+
         $attributes = array_merge($this->defaultLifecycleConfig(), $context->lifecycle);
         $attributes = array_merge($attributes, [
             'request_source' => $this->determineRequestSource($request),
@@ -75,7 +86,7 @@ class RelayCaptureService
             'route_id' => $context->routeId,
             'route_identifier' => $context->routeIdentifier,
             'destination_type' => $context->destinationType,
-            'destination' => $context->destination,
+            'destination_url' => $destinationUrl,
         ]);
 
         $relay = $this->relay->newQuery()->create($attributes);

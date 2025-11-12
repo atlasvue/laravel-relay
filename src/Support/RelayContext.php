@@ -32,7 +32,7 @@ class RelayContext
         public readonly ?int $routeId = null,
         public readonly ?string $routeIdentifier = null,
         public readonly ?string $destinationType = null,
-        public readonly ?string $destination = null,
+        public readonly ?string $destinationUrl = null,
         public readonly array $routeHeaders = [],
         public readonly array $routeParameters = []
     ) {}

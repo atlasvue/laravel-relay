@@ -23,7 +23,7 @@ return new class extends Migration
             $table->unsignedBigInteger('route_id')->nullable();
             $table->string('route_identifier')->nullable();
             $table->string('destination_type', 32)->nullable();
-            $table->text('destination')->nullable();
+            $table->string('destination_url')->nullable();
             $table->unsignedSmallInteger('response_status')->nullable();
             $table->json('response_payload')->nullable();
             $table->boolean('response_payload_truncated')->default(false);

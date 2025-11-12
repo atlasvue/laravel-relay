@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
  * @property int|null $route_id
  * @property string|null $route_identifier
  * @property string|null $destination_type
- * @property string|null $destination
+ * @property string|null $destination_url
  * @property int|null $response_status
  * @property array<mixed>|null $response_payload
  * @property bool $response_payload_truncated

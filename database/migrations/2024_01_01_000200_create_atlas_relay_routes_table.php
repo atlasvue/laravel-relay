@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('method', 16);
             $table->string('path');
             $table->string('type', 32);
-            $table->text('destination');
+            $table->string('destination_url');
             $table->json('headers')->nullable();
             $table->json('retry_policy')->nullable();
             $table->boolean('is_retry')->default(false);

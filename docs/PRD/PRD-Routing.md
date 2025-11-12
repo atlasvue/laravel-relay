@@ -49,7 +49,7 @@ Routes are defined in the `atlas_relay_routes` table or through programmatic reg
 | `method`          | HTTP method to match (e.g., POST, GET).                                                       |
 | `path`            | Request path pattern (supports dynamic segments).                                             |
 | `type`            | Route type (`http`, `event`, `dispatch`).                                                     |
-| `destination`     | URL or handler reference (e.g., `https://api.example.com/webhook`, `App\Events\LeadCreated`). |
+| `destination_url` | URL or handler reference (e.g., `https://api.example.com/webhook`, `App\Events\LeadCreated`). |
 | `headers`         | JSON object of custom headers (applied if HTTP type).                                         |
 | `retry_policy`    | JSON configuration for retries and delays.                                                    |
 | `timeout_seconds` | Max duration allowed for outbound execution.                                                  |

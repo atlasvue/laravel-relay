@@ -211,7 +211,7 @@ class RelayBuilder
             $this->routeResult?->id,
             $this->routeResult?->identifier,
             $this->routeResult?->type,
-            $this->routeResult?->destination,
+            $this->routeResult?->destinationUrl,
             $this->routeHeaders,
             $this->routeParameters
         );

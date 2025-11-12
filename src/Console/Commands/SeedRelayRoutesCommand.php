@@ -58,7 +58,7 @@ class SeedRelayRoutesCommand extends Command
                 'method' => strtoupper($definition['method'] ?? 'POST'),
                 'path' => $definition['path'] ?? '/',
                 'type' => $definition['type'] ?? 'http',
-                'destination' => $definition['destination'] ?? '',
+                'destination_url' => $definition['destination_url'] ?? $definition['destination'] ?? '',
                 'headers' => $definition['headers'] ?? [],
                 'is_retry' => $definition['is_retry'] ?? false,
                 'retry_seconds' => $definition['retry_seconds'] ?? null,
