@@ -14,16 +14,19 @@ use AtlasRelay\Support\RelayJobMiddleware;
 use AtlasRelay\Support\RelayPendingChain;
 use Closure;
 use Illuminate\Bus\ChainedBatch;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Bus\PendingChain;
 use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
+use JsonSerializable;
 use LogicException;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
+use Traversable;
 
 /**
  * Orchestrates outbound delivery modes (events, HTTP, dispatch) and lifecycle recording.
@@ -192,7 +195,11 @@ class RelayDeliveryService
     {
         $arguments = $this->determineEventArguments($callback, $relay);
 
-        return $callback(...$arguments);
+        $result = $callback(...$arguments);
+
+        $this->recordEventResponse($relay, $result);
+
+        return $result;
     }
 
     /**
@@ -255,5 +262,42 @@ class RelayDeliveryService
         }
 
         return null;
+    }
+
+    private function recordEventResponse(Relay $relay, mixed $response): void
+    {
+        if ($response === null) {
+            return;
+        }
+
+        $normalized = $this->normalizeEventResponse($response);
+
+        $this->lifecycle->recordResponse($relay, null, $normalized, false);
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    private function normalizeEventResponse(mixed $response): array
+    {
+        if ($response instanceof Arrayable) {
+            $response = $response->toArray();
+        } elseif ($response instanceof JsonSerializable) {
+            $response = $response->jsonSerialize();
+        } elseif ($response instanceof Traversable) {
+            $response = iterator_to_array($response);
+        } elseif (is_object($response) && method_exists($response, 'toArray')) {
+            $converted = $response->toArray();
+
+            if (is_array($converted)) {
+                $response = $converted;
+            }
+        }
+
+        if (is_array($response)) {
+            return $response;
+        }
+
+        return ['value' => $response];
     }
 }

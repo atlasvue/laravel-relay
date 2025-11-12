@@ -35,6 +35,19 @@ class EventDeliveryTest extends TestCase
         $this->assertNull($relay->failure_reason);
     }
 
+    public function test_event_completion_records_return_value(): void
+    {
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        $builder->event(fn (): string => 'ok');
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $this->assertSame(['value' => 'ok'], $relay->response_payload);
+        $this->assertNull($relay->response_status);
+        $this->assertFalse($relay->response_payload_truncated);
+    }
+
     public function test_event_failure_sets_failure_reason(): void
     {
         $builder = Relay::payload(['foo' => 'bar']);
@@ -117,6 +130,41 @@ class EventDeliveryTest extends TestCase
 
         $this->assertSame('completed', $relay->status);
         $this->assertNull($relay->failure_reason);
+    }
+
+    public function test_dispatch_event_records_return_value_after_execution(): void
+    {
+        Queue::fake();
+
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        $builder->dispatchEvent(fn (): string => 'queued-ok');
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $capturedJob = null;
+
+        Queue::assertPushed(DispatchRelayEventJob::class, function (DispatchRelayEventJob $job) use (&$capturedJob): bool {
+            $capturedJob = $job;
+
+            return true;
+        });
+
+        $this->assertNotNull($capturedJob);
+
+        $middleware = new RelayJobMiddleware($relay->id);
+        /** @var RelayDeliveryService $service */
+        $service = app(RelayDeliveryService::class);
+
+        $middleware->handle($capturedJob, function (DispatchRelayEventJob $job) use ($service): void {
+            $job->handle($service);
+        });
+
+        $relay->refresh();
+
+        $this->assertSame(['value' => 'queued-ok'], $relay->response_payload);
+        $this->assertNull($relay->response_status);
+        $this->assertFalse($relay->response_payload_truncated);
     }
 
     public function test_dispatch_event_marks_failure_after_job_exception(): void

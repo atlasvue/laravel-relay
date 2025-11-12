@@ -78,7 +78,7 @@ class RelayLifecycleService
         return $relay;
     }
 
-    public function recordResponse(Relay $relay, int $status, mixed $payload, bool $truncated = false): Relay
+    public function recordResponse(Relay $relay, ?int $status, mixed $payload, bool $truncated = false): Relay
     {
         $relay->forceFill([
             'response_status' => $status,
