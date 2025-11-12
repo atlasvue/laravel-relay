@@ -10,10 +10,13 @@ use AtlasRelay\Models\Relay;
 use AtlasRelay\Support\RelayHttpClient;
 use AtlasRelay\Support\RelayJobContext;
 use AtlasRelay\Support\RelayJobMiddleware;
+use AtlasRelay\Support\RelayPendingChain;
+use Illuminate\Bus\ChainedBatch;
 use Illuminate\Foundation\Bus\PendingChain;
 use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Collection;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
@@ -66,7 +69,9 @@ class RelayDeliveryService
     {
         $this->applyJobMiddleware($job, $relay);
 
-        return dispatch($job);
+        $pending = dispatch($job);
+
+        return $pending->through(new RelayJobMiddleware($relay->id));
     }
 
     public function dispatchSync(Relay $relay, mixed $job): mixed
@@ -100,11 +105,33 @@ class RelayDeliveryService
      */
     public function dispatchChain(Relay $relay, array $jobs): PendingChain
     {
-        foreach ($jobs as $job) {
-            $this->applyJobMiddleware($job, $relay);
+        $prepared = array_map(
+            fn (mixed $job) => $this->prepareChainJob($job, $relay),
+            $jobs
+        );
+
+        $collection = ChainedBatch::prepareNestedBatches(Collection::wrap($prepared));
+
+        return new RelayPendingChain(
+            $relay->id,
+            $collection->shift(),
+            $collection->toArray()
+        );
+    }
+
+    private function prepareChainJob(mixed $job, Relay $relay): mixed
+    {
+        if ($job instanceof Collection) {
+            return $job->map(fn (mixed $nested) => $this->prepareChainJob($nested, $relay));
         }
 
-        return Bus::chain($jobs);
+        if (is_array($job)) {
+            return array_map(fn (mixed $nested) => $this->prepareChainJob($nested, $relay), $job);
+        }
+
+        $this->applyJobMiddleware($job, $relay);
+
+        return $job;
     }
 
     private function applyJobMiddleware(mixed $job, Relay $relay): void
