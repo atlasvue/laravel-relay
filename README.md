@@ -25,35 +25,6 @@ Atlas Relay ensures:
 
 ---
 
-## 🧰 Installation
-
-Install the package via Composer:
-
-```bash
-composer require atlas-php/relay
-```
-
-After installation, publish the configuration and migrations:
-
-```bash
-php artisan vendor:publish --tag=atlas-relay-config
-php artisan vendor:publish --tag=atlas-relay-migrations
-php artisan migrate
-```
-
-Finally, register the automation scheduler inside your `Console\Kernel`:
-
-```php
-use Atlas\Relay\Support\RelayScheduler;
-
-protected function schedule(Schedule $schedule): void
-{
-    RelayScheduler::register($schedule);
-}
-```
-
----
-
 ## ⚡ Core Concepts
 
 **Relay Flow:**
@@ -65,6 +36,50 @@ Each stage of the lifecycle is defined in its own PRD:
 - [Routing](./docs/PRD/PRD-Routing.md): determining the correct destination
 - [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md): transmitting payloads and handling retries
 - [Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md): long-term retention and audit trails
+
+---
+
+## 🧰 Installation
+
+### Composer
+
+Require the package:
+
+```bash
+composer require atlas-php/relay
+```
+
+### Config
+
+Publish the configuration to tailor table names, lifecycle defaults, and connection settings:
+
+```bash
+php artisan vendor:publish --tag=atlas-relay-config
+```
+
+### Database
+
+Publish and run the package migrations:
+
+```bash
+php artisan vendor:publish --tag=atlas-relay-migrations
+php artisan migrate
+```
+
+Need the schema on a tenant/secondary database? Set `ATLAS_RELAY_DATABASE_CONNECTION=tenant` (or update `config/atlas-relay.php`) before running migrations. The package will run its migrations and models through that connection while leaving the host app’s default connection untouched.
+
+### Scheduler
+
+Register the automation scheduler inside your `Console\Kernel`:
+
+```php
+use Atlas\Relay\Support\RelayScheduler;
+
+protected function schedule(Schedule $schedule): void
+{
+    RelayScheduler::register($schedule);
+}
+```
 
 ---
 

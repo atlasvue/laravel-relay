@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,7 +13,7 @@ return new class extends Migration
     {
         $tableName = config('atlas-relay.tables.relay_routes', 'atlas_relay_routes');
 
-        Schema::create($tableName, function (Blueprint $table): void {
+        $this->schema()->create($tableName, function (Blueprint $table): void {
             $table->bigIncrements('id');
             $table->string('identifier')->nullable();
             $table->string('method', 16);
@@ -41,6 +42,14 @@ return new class extends Migration
     {
         $tableName = config('atlas-relay.tables.relay_routes', 'atlas_relay_routes');
 
-        Schema::dropIfExists($tableName);
+        $this->schema()->dropIfExists($tableName);
+    }
+
+    private function schema(): Builder
+    {
+        $connection = config('atlas-relay.database.connection');
+        $connectionName = $connection ?: config('database.default');
+
+        return Schema::connection($connectionName);
     }
 };

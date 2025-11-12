@@ -19,6 +19,11 @@ abstract class AtlasModel extends Model
     public function __construct(array $attributes = [])
     {
         $this->setTable(config($this->tableNameConfigKey(), $this->defaultTableName()));
+        $connection = config('atlas-relay.database.connection');
+
+        if ($connection) {
+            $this->setConnection($connection);
+        }
 
         parent::__construct($attributes);
     }

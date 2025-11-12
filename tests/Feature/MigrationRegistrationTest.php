@@ -99,4 +99,26 @@ class MigrationRegistrationTest extends TestCase
         $this->assertFalse(Schema::hasTable('atlas_relays'));
         $this->assertSame('custom_relays', (new Relay)->getTable());
     }
+
+    public function test_connection_can_be_configured_via_config_file(): void
+    {
+        config()->set('database.connections.relay_tenant', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+        ]);
+
+        config()->set('atlas-relay.database.connection', 'relay_tenant');
+
+        $this->runPendingCommand('migrate:fresh', ['--database' => 'testbench'])->run();
+
+        $tenantSchema = Schema::connection('relay_tenant');
+
+        $this->assertTrue($tenantSchema->hasTable('atlas_relays'));
+        $this->assertTrue($tenantSchema->hasTable('atlas_relay_routes'));
+        $this->assertTrue($tenantSchema->hasTable('atlas_relay_archives'));
+
+        $this->assertFalse(Schema::hasTable('atlas_relays'));
+        $this->assertSame('relay_tenant', (new Relay)->getConnectionName());
+    }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Atlas\Relay\Enums\RelayStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -13,7 +14,7 @@ return new class extends Migration
     {
         $tableName = config('atlas-relay.tables.relays', 'atlas_relays');
 
-        Schema::create($tableName, function (Blueprint $table): void {
+        $this->schema()->create($tableName, function (Blueprint $table): void {
             $table->bigIncrements('id');
             $table->string('request_source')->nullable();
             $table->json('headers')->nullable();
@@ -62,6 +63,14 @@ return new class extends Migration
     {
         $tableName = config('atlas-relay.tables.relays', 'atlas_relays');
 
-        Schema::dropIfExists($tableName);
+        $this->schema()->dropIfExists($tableName);
+    }
+
+    private function schema(): Builder
+    {
+        $connection = config('atlas-relay.database.connection');
+        $connectionName = $connection ?: config('database.default');
+
+        return Schema::connection($connectionName);
     }
 };
