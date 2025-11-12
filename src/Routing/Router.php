@@ -98,15 +98,13 @@ class Router
     {
         $routes = $this->rememberRoutesForMethod($method, $enabledOnly);
 
-        foreach ($routes as $route) {
-            if ($route['path'] === $path) {
-                return RouteResult::fromArray(Arr::except($route, ['path']));
-            }
+        $staticRoutes = $routes['static'] ?? [];
 
-            if (! str_contains($route['path'], '{')) {
-                continue;
-            }
+        if (isset($staticRoutes[$path])) {
+            return RouteResult::fromArray($staticRoutes[$path]);
+        }
 
+        foreach ($routes['dynamic'] ?? [] as $route) {
             $parameters = $this->matchDynamicPath($route['path'], $path);
 
             if ($parameters === null) {
@@ -122,7 +120,10 @@ class Router
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array{
+     *     static: array<string, array<string, mixed>>,
+     *     dynamic: array<int, array<string, mixed>>
+     * }
      */
     private function rememberRoutesForMethod(string $method, bool $enabledOnly): array
     {
@@ -139,8 +140,13 @@ class Router
 
         $query->where('enabled', $enabledOnly);
 
-        $result = $query->get()->map(function (RelayRoute $route) {
-            return [
+        $result = [
+            'static' => [],
+            'dynamic' => [],
+        ];
+
+        foreach ($query->get() as $route) {
+            $payload = [
                 'id' => (int) $route->getAttribute('id'),
                 'identifier' => $route->getAttribute('identifier'),
                 'type' => $route->getAttribute('type'),
@@ -157,7 +163,15 @@ class Router
                 ],
                 'path' => $route->getAttribute('path'),
             ];
-        })->all();
+
+            if (str_contains($payload['path'], '{')) {
+                $result['dynamic'][] = $payload;
+
+                continue;
+            }
+
+            $result['static'][$payload['path']] = Arr::except($payload, ['path']);
+        }
 
         $this->putCache($cacheKey, $result);
 

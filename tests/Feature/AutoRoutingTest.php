@@ -66,6 +66,41 @@ class AutoRoutingTest extends TestCase
         $this->assertSame('42', $meta['route_parameters']['LEAD_ID'] ?? null);
     }
 
+    public function test_static_routes_are_resolved_before_dynamic_patterns(): void
+    {
+        $dynamic = $this->createRoute([
+            'identifier' => 'wildcard',
+            'path' => '/{slug}',
+            'destination' => 'https://example.com/wildcard',
+        ]);
+
+        $static = $this->createRoute([
+            'identifier' => 'orders-static',
+            'path' => '/orders',
+            'destination' => 'https://example.com/orders-static',
+        ]);
+
+        $relay = $this->assertRelayInstance(
+            Relay::request(Request::create('/orders', 'POST'))
+                ->dispatchAutoRoute()
+                ->relay()
+        );
+
+        $this->assertSame($static->id, $relay->route_id);
+        $this->assertSame('https://example.com/orders-static', $relay->destination);
+
+        $fallback = $this->assertRelayInstance(
+            Relay::request(Request::create('/anything', 'POST'))
+                ->dispatchAutoRoute()
+                ->relay()
+        );
+
+        $this->assertSame($dynamic->id, $fallback->route_id);
+        $this->assertSame('https://example.com/wildcard', $fallback->destination);
+        $meta = $fallback->meta ?? [];
+        $this->assertSame('anything', $meta['route_parameters']['slug'] ?? null);
+    }
+
     public function test_programmatic_provider_precedence_and_caching_controls(): void
     {
         /** @var Router $router */
