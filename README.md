@@ -198,6 +198,15 @@ For full schema and retention behavior, see [Archiving & Logging](./docs/PRD/PRD
 | `ATLAS_RELAY_ARCHIVE_DAYS` | 30      | Days before relays move to archive.      |
 | `ATLAS_RELAY_PURGE_DAYS`   | 180     | Days before archived relays are deleted. |
 
+---
+
+## 🤝 Contributing
+
+We welcome improvements! Please review the [Contributing Guide](./CONTRIBUTING.md) before opening a pull request. It
+covers the mandatory Pint/PHPStan/test workflow, the PRD-driven standards outlined in [AGENTS.md](./AGENTS.md), and the
+branching + Conventional Commit rules we enforce across the project. See [AGENTS.md](./AGENTS.md) for the agent workflow
+and PRD alignment expectations that apply to every change.
+
 Archiving runs nightly at **10 PM EST**, and purging at **11 PM EST**.  
 (Defined in [Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md))
 
@@ -327,35 +336,6 @@ Relay::payload(['status' => 'processed'])
 Relay::payload(['id' => 42])
     ->dispatchEvent(fn() => ExampleJob::dispatch());
 ```
-
----
-
-## 🤝 Contributing
-
-Atlas Relay is designed for extensibility across webhook and payload delivery systems.  
-Contributions to routing, visibility, or lifecycle handling are encouraged.
-
-### Local Setup
-```bash
-composer install
-```
-
-Run tests for the package (no Laravel app context required):
-```bash
-composer test
-```
-
-Run static analysis to catch type regressions early:
-```bash
-composer analyse
-```
-
----
-
-## 👥 Contributors
-
-We welcome collaboration from contributors and agents helping improve Atlas Relay’s ecosystem.  
-See the [AGENTS.md](./AGENTS.md) file to learn more about how to participate.
 
 ---
 
