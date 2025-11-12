@@ -55,6 +55,19 @@ class DispatchDeliveryTest extends TestCase
 
         $this->assertInstanceOf(\Illuminate\Foundation\Bus\PendingDispatch::class, $pending);
     }
+
+    public function test_dispatch_executes_middleware_for_queued_jobs(): void
+    {
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        $builder->dispatch(new TypicalQueuedJob);
+
+        $relay = $this->assertRelayInstance($builder->relay());
+        $relay->refresh();
+
+        $this->assertSame(1, $relay->attempt_count);
+        $this->assertSame('completed', $relay->status);
+    }
 }
 
 class SuccessfulJob implements ShouldQueue
@@ -80,5 +93,26 @@ class FailingJob implements ShouldQueue
     public function handle(): void
     {
         app(RelayJobHelper::class)->fail(RelayFailure::CANCELLED, 'Manually failed');
+    }
+}
+
+class TypicalQueuedJob implements ShouldQueue
+{
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+
+    /**
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [];
+    }
+
+    public function handle(): void
+    {
+        // no-op
     }
 }
