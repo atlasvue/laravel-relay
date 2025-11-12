@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Support;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Exceptions\RelayHttpException;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Services\RelayLifecycleService;
 use GuzzleHttp\Exception\TooManyRedirectsException;
@@ -16,7 +17,6 @@ use Illuminate\Support\Str;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
-use RuntimeException;
 
 /**
  * Proxy around Laravel's HTTP client that enforces PRD rules and records relay lifecycle data.
@@ -73,7 +73,7 @@ class RelayHttpClient
         $url = $arguments[0] ?? null;
 
         if (! is_string($url)) {
-            throw new RuntimeException('HTTP relay calls require a target URL.');
+            throw new RelayHttpException('HTTP relay calls require a target URL.');
         }
 
         $this->assertHttps($url);
@@ -99,7 +99,12 @@ class RelayHttpClient
             $duration = $this->durationSince($startedAt);
             $this->lifecycle->markFailed($relay, RelayFailure::TOO_MANY_REDIRECTS, [], $duration);
 
-            throw new RuntimeException('Redirect limit exceeded for relay HTTP delivery.', 0, $exception);
+            throw new RelayHttpException(
+                'Redirect limit exceeded for relay HTTP delivery.',
+                RelayFailure::TOO_MANY_REDIRECTS,
+                0,
+                $exception
+            );
         } catch (RequestException $exception) {
             $duration = $this->durationSince($startedAt);
             $this->lifecycle->markFailed($relay, RelayFailure::OUTBOUND_HTTP_ERROR, [], $duration);
@@ -136,7 +141,7 @@ class RelayHttpClient
             return;
         }
 
-        throw new RuntimeException('Atlas Relay HTTP deliveries require HTTPS targets.');
+        throw new RelayHttpException('Atlas Relay HTTP deliveries require HTTPS targets.');
     }
 
     private function evaluateRedirects(string $originalUrl, Response $response, Relay $relay, int $duration): void
@@ -148,7 +153,10 @@ class RelayHttpClient
         if ($redirectCount > $maxRedirects) {
             $this->lifecycle->markFailed($relay, RelayFailure::TOO_MANY_REDIRECTS, [], $duration);
 
-            throw new RuntimeException('Redirect limit exceeded for relay HTTP delivery.');
+            throw new RelayHttpException(
+                'Redirect limit exceeded for relay HTTP delivery.',
+                RelayFailure::TOO_MANY_REDIRECTS
+            );
         }
 
         $effective = (string) ($response->effectiveUri() ?? $originalUrl);
@@ -159,7 +167,10 @@ class RelayHttpClient
         if (is_string($effectiveHost) && is_string($originalHost) && ! hash_equals($originalHost, $effectiveHost)) {
             $this->lifecycle->markFailed($relay, RelayFailure::REDIRECT_HOST_CHANGED, [], $duration);
 
-            throw new RuntimeException('Redirect attempted to a different host.');
+            throw new RelayHttpException(
+                'Redirect attempted to a different host.',
+                RelayFailure::REDIRECT_HOST_CHANGED
+            );
         }
     }
 
@@ -237,7 +248,10 @@ class RelayHttpClient
                             $duration
                         );
 
-                        throw new RuntimeException('Redirect attempted to a different host.');
+                        throw new RelayHttpException(
+                            'Redirect attempted to a different host.',
+                            RelayFailure::REDIRECT_HOST_CHANGED
+                        );
                     }
                 },
             ],
