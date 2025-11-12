@@ -10,6 +10,11 @@ use AtlasRelay\Models\RelayRoute;
 use AtlasRelay\Tests\TestCase;
 use Illuminate\Support\Facades\File;
 
+/**
+ * Exercises developer tooling commands for seeding routes, inspecting relays, and restoring archives.
+ *
+ * Defined by PRD: Auto Routing — Route Definitions; Archiving & Logging — Archiving Process and Notes on restoration.
+ */
 class DxCommandsTest extends TestCase
 {
     public function test_route_seed_command_creates_routes(): void

@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+/**
+ * Base TestCase bootstrapping Atlas Relay inside Orchestra Testbench so feature scenarios run against the package migrations and configuration.
+ *
+ * Defined by PRD: Payload Capture — Inbound Entry Point & Record Creation.
+ */
+
 namespace AtlasRelay\Tests;
 
 use AtlasRelay\Facades\Relay;

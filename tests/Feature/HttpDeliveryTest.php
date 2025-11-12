@@ -18,6 +18,11 @@ use Illuminate\Support\Facades\Http;
 use ReflectionMethod;
 use RuntimeException;
 
+/**
+ * Verifies HTTP deliveries enforce HTTPS, record responses, and translate transport conditions into relay failures.
+ *
+ * Defined by PRD: Outbound Delivery — HTTP Mode, HTTP Interception & Lifecycle Tracking, and Failure Reason Enum.
+ */
 class HttpDeliveryTest extends TestCase
 {
     public function test_http_delivery_records_response_and_completion(): void

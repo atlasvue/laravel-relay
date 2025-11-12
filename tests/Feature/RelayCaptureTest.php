@@ -10,6 +10,11 @@ use AtlasRelay\Models\Relay as RelayModel;
 use AtlasRelay\Tests\TestCase;
 use Illuminate\Http\Request;
 
+/**
+ * Exercises payload capture flows covering header normalization, lifecycle overrides, payload limits, and validation error persistence.
+ *
+ * Defined by PRD: Payload Capture — Header Normalization, Payload Handling, Failure Reason Enum, and Edge Cases.
+ */
 class RelayCaptureTest extends TestCase
 {
     public function test_capture_persists_normalized_headers_and_lifecycle_overrides(): void

@@ -14,6 +14,11 @@ use AtlasRelay\Routing\RoutingProviderInterface;
 use AtlasRelay\Tests\TestCase;
 use Illuminate\Http\Request;
 
+/**
+ * Covers AutoRouting scenarios including default propagation, dynamic parameter capture, provider precedence, caching, and failure mapping.
+ *
+ * Defined by PRD: Auto Routing — AutoRouting Behavior, Programmatic Providers, Cache Behavior, and Failure Handling.
+ */
 class AutoRoutingTest extends TestCase
 {
     public function test_dispatch_auto_route_applies_route_defaults_and_headers(): void
