@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AtlasRelay\Console\Commands;
 
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Events\RelayRestored;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Models\RelayArchive;
@@ -37,7 +38,7 @@ class RestoreRelayCommand extends Command
         $attributes = $archive->getAttributes();
         unset($attributes['archived_at']);
 
-        $attributes['status'] = 'queued';
+        $attributes['status'] = RelayStatus::QUEUED;
         $attributes['failure_reason'] = null;
         $attributes['retry_at'] = null;
         $attributes['processing_started_at'] = null;

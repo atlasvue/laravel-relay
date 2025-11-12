@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AtlasRelay\Console\Commands;
 
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Events\AutomationMetrics;
 use AtlasRelay\Events\RelayRequeued;
 use AtlasRelay\Models\Relay;
@@ -33,7 +34,7 @@ class RequeueStuckRelaysCommand extends Command
         $count = 0;
 
         Relay::query()
-            ->where('status', 'processing')
+            ->where('status', RelayStatus::PROCESSING->value)
             ->whereNull('archived_at')
             ->where(function ($query) use ($cutoff): void {
                 $query->whereNull('processing_started_at')
@@ -43,7 +44,7 @@ class RequeueStuckRelaysCommand extends Command
             ->chunkById($chunkSize, function ($relays) use (&$count): void {
                 foreach ($relays as $relay) {
                     $relay->forceFill([
-                        'status' => 'queued',
+                        'status' => RelayStatus::QUEUED,
                         'processing_started_at' => null,
                         'processing_finished_at' => null,
                         'last_attempt_duration_ms' => null,

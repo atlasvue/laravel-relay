@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AtlasRelay\Tests\Feature;
 
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Models\RelayArchive;
 use AtlasRelay\Models\RelayRoute;
@@ -57,13 +58,13 @@ class DxCommandsTest extends TestCase
             'request_source' => 'cli',
             'payload' => ['demo' => true],
             'headers' => [],
-            'status' => 'queued',
+            'status' => RelayStatus::QUEUED,
             'mode' => 'http',
         ]);
 
         $this->runPendingCommand('atlas-relay:relay:inspect', ['id' => $relay->id])
             ->assertExitCode(0)
-            ->expectsOutputToContain('"status": "queued"');
+            ->expectsOutputToContain('"status": 0');
     }
 
     public function test_restore_command_moves_archive_to_live(): void
@@ -73,7 +74,7 @@ class DxCommandsTest extends TestCase
             'request_source' => 'cli',
             'payload' => ['demo' => true],
             'headers' => [],
-            'status' => 'completed',
+            'status' => RelayStatus::COMPLETED,
             'mode' => 'http',
         ]);
 
@@ -82,7 +83,10 @@ class DxCommandsTest extends TestCase
             '--delete' => true,
         ])->assertExitCode(0);
 
-        $this->assertDatabaseHas((new Relay)->getTable(), ['id' => $archive->id, 'status' => 'queued']);
+        $this->assertDatabaseHas((new Relay)->getTable(), [
+            'id' => $archive->id,
+            'status' => RelayStatus::QUEUED->value,
+        ]);
         $this->assertDatabaseMissing((new RelayArchive)->getTable(), ['id' => $archive->id]);
     }
 }

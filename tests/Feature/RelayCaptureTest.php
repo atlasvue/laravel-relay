@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Models\Relay as RelayModel;
 use AtlasRelay\Tests\TestCase;
@@ -34,7 +35,7 @@ class RelayCaptureTest extends TestCase
             ->capture();
 
         $this->assertInstanceOf(RelayModel::class, $relay);
-        $this->assertSame('queued', $relay->status);
+        $this->assertSame(RelayStatus::QUEUED, $relay->status);
         $this->assertSame('event', $relay->mode);
         $this->assertSame('127.0.0.1', $relay->request_source);
         $this->assertSame(['status' => 'queued'], $relay->payload);
@@ -78,7 +79,7 @@ class RelayCaptureTest extends TestCase
 
         $relay = Relay::payload($payload)->capture();
 
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::PAYLOAD_TOO_LARGE->value, $relay->failure_reason);
         $this->assertNull($relay->payload);
         $meta = $relay->meta ?? [];
@@ -96,7 +97,7 @@ class RelayCaptureTest extends TestCase
             ->failWith(RelayFailure::INVALID_PAYLOAD)
             ->capture();
 
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::INVALID_PAYLOAD->value, $relay->failure_reason);
         $meta = $relay->meta ?? [];
         $this->assertSame('Invalid structure.', $meta['validation_errors']['payload'][0] ?? null);
@@ -109,7 +110,7 @@ class RelayCaptureTest extends TestCase
 
         $relay = Relay::request($request)->capture();
 
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::INVALID_PAYLOAD->value, $relay->failure_reason);
         $this->assertSame('{"foo": "bar"', $relay->payload);
         $meta = $relay->meta ?? [];

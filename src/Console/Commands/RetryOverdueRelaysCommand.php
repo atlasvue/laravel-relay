@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AtlasRelay\Console\Commands;
 
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Events\AutomationMetrics;
 use AtlasRelay\Events\RelayRequeued;
 use AtlasRelay\Models\Relay;
@@ -34,7 +35,7 @@ class RetryOverdueRelaysCommand extends Command
             ->chunkById($chunkSize, function ($relays) use (&$count): void {
                 foreach ($relays as $relay) {
                     $relay->forceFill([
-                        'status' => 'queued',
+                        'status' => RelayStatus::QUEUED,
                         'retry_at' => null,
                         'failure_reason' => null,
                         'processing_started_at' => null,

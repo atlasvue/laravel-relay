@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Support;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use Illuminate\Http\Request;
 
 /**
@@ -26,7 +27,7 @@ class RelayContext
         public readonly array $lifecycle = [],
         public readonly array $meta = [],
         public readonly ?RelayFailure $failureReason = null,
-        public readonly string $status = 'queued',
+        public readonly RelayStatus $status = RelayStatus::QUEUED,
         public readonly array $validationErrors = [],
         public readonly ?int $routeId = null,
         public readonly ?string $routeIdentifier = null,

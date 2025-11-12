@@ -44,8 +44,10 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `maxAttempts(?int $maxAttempts)` | Override the `max_attempts` cap. |
 | `meta(array $meta)` / `mergeMeta(array $meta)` | Replace or merge extra metadata stored with the relay (e.g. tags). |
 | `validationError(string $field, string $message)` | Append validation feedback that is persisted alongside the relay. |
-| `failWith(RelayFailure $failure, string $status = 'failed')` | Prefill capture state to failed with a specific failure code. |
-| `status(string $status)` | Override the initial status before capture. |
+| `failWith(RelayFailure $failure, RelayStatus $status = RelayStatus::FAILED)` | Prefill capture state to failed with a specific failure code. |
+| `status(RelayStatus $status)` | Override the initial status before capture. |
+
+> **RelayStatus enum:** Status-related methods accept values from `Enums\RelayStatus`, which is stored as an unsigned tinyint on relay records.
 
 ### Persistence & Inspection
 
@@ -88,12 +90,12 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 
 | Method | Behaviour |
 | --- | --- |
-| `startAttempt(Relay $relay)` | Increment attempt counters, mark status `processing`, dispatch `RelayAttemptStarted`. |
-| `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata and fire `RelayCompleted`. |
-| `markFailed(Relay $relay, RelayFailure $failure, array $attributes = [], ?int $durationMs = null)` | Persist failure data and fire `RelayFailed`. |
+| `startAttempt(Relay $relay)` | Increment attempt counters, mark status `RelayStatus::PROCESSING`, dispatch `RelayAttemptStarted`. |
+| `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and fire `RelayCompleted`. |
+| `markFailed(Relay $relay, RelayFailure $failure, array $attributes = [], ?int $durationMs = null)` | Persist failure data, set status `RelayStatus::FAILED`, and fire `RelayFailed`. |
 | `recordResponse(Relay $relay, int $status, mixed $payload, bool $truncated = false)` | Store outbound HTTP response info. |
-| `cancel(Relay $relay, ?RelayFailure $reason = null)` | Set status `cancelled` and clear retry metadata. |
-| `replay(Relay $relay)` | Reset lifecycle columns, allowing automation to pick the relay back up. |
+| `cancel(Relay $relay, ?RelayFailure $reason = null)` | Set status `RelayStatus::CANCELLED` and clear retry metadata. |
+| `replay(Relay $relay)` | Reset lifecycle columns and set status `RelayStatus::QUEUED`, allowing automation to pick the relay back up. |
 
 ### RelayCaptureService
 
@@ -137,6 +139,8 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `AtlasRelay\Models\RelayArchive` | Long-term storage for completed/failed relays. | `scopeEligibleForPurge(int $retentionDays)`. Table configurable via `atlas-relay.tables.relay_archives`. |
 
 All models inherit from `AtlasModel`, which reads the target table names from config at construction time.
+
+> **Status Casting:** The `status` attribute on relay and archive models uses the `Enums\RelayStatus` PHP enum and is stored as an unsigned tinyint (`0`–`4`).
 
 ---
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AtlasRelay\Models;
 
+use AtlasRelay\Enums\RelayStatus;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
  * @property string|null $request_source
  * @property array<string, mixed>|null $headers
  * @property array<mixed>|null $payload
- * @property string $status
+ * @property RelayStatus $status
  * @property string|null $mode
  * @property int|null $route_id
  * @property string|null $route_identifier
@@ -56,6 +57,7 @@ class Relay extends AtlasModel
         'payload' => 'array',
         'response_payload' => 'array',
         'meta' => 'array',
+        'status' => RelayStatus::class,
         'is_retry' => 'boolean',
         'is_delay' => 'boolean',
         'response_payload_truncated' => 'boolean',

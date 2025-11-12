@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AtlasRelay\Tests\Feature;
 
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Models\Relay;
 use AtlasRelay\Models\RelayArchive;
 use AtlasRelay\Tests\TestCase;
@@ -37,7 +38,7 @@ class AutomationCommandsTest extends TestCase
             'request_source' => 'cli',
             'headers' => [],
             'payload' => [],
-            'status' => 'failed',
+            'status' => RelayStatus::FAILED,
             'mode' => 'auto_route',
             'is_retry' => true,
             'retry_at' => Carbon::now()->subMinute(),
@@ -46,7 +47,7 @@ class AutomationCommandsTest extends TestCase
         $this->runPendingCommand('atlas-relay:retry-overdue')->assertExitCode(0);
 
         $relay->refresh();
-        $this->assertSame('queued', $relay->status);
+        $this->assertSame(RelayStatus::QUEUED, $relay->status);
         $this->assertNull($relay->retry_at);
         $this->assertNull($relay->failure_reason);
     }
@@ -57,7 +58,7 @@ class AutomationCommandsTest extends TestCase
             'request_source' => 'cli',
             'headers' => [],
             'payload' => [],
-            'status' => 'processing',
+            'status' => RelayStatus::PROCESSING,
             'mode' => 'event',
             'processing_started_at' => Carbon::now()->subMinutes(30),
         ]);
@@ -65,7 +66,7 @@ class AutomationCommandsTest extends TestCase
         $this->runPendingCommand('atlas-relay:requeue-stuck')->assertExitCode(0);
 
         $relay->refresh();
-        $this->assertSame('queued', $relay->status);
+        $this->assertSame(RelayStatus::QUEUED, $relay->status);
         $this->assertNull($relay->processing_started_at);
     }
 
@@ -75,7 +76,7 @@ class AutomationCommandsTest extends TestCase
             'request_source' => 'cli',
             'headers' => [],
             'payload' => [],
-            'status' => 'processing',
+            'status' => RelayStatus::PROCESSING,
             'mode' => 'http',
             'timeout_seconds' => 60,
             'processing_started_at' => Carbon::now()->subMinutes(5),
@@ -84,7 +85,7 @@ class AutomationCommandsTest extends TestCase
         $this->runPendingCommand('atlas-relay:enforce-timeouts')->assertExitCode(0);
 
         $relay->refresh();
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
     }
 
     public function test_archive_and_purge_commands(): void
@@ -93,7 +94,7 @@ class AutomationCommandsTest extends TestCase
             'request_source' => 'cli',
             'headers' => [],
             'payload' => [],
-            'status' => 'completed',
+            'status' => RelayStatus::COMPLETED,
             'mode' => 'http',
             'updated_at' => Carbon::now()->subDays(60),
             'created_at' => Carbon::now()->subDays(61),
@@ -102,7 +103,10 @@ class AutomationCommandsTest extends TestCase
         $this->runPendingCommand('atlas-relay:archive', ['--chunk' => 10])->assertExitCode(0);
 
         $this->assertDatabaseMissing($relay->getTable(), ['id' => $relay->id]);
-        $this->assertDatabaseHas(RelayArchive::query()->getModel()->getTable(), ['id' => $relay->id]);
+        $this->assertDatabaseHas(
+            RelayArchive::query()->getModel()->getTable(),
+            ['id' => $relay->id]
+        );
 
         RelayArchive::query()->update(['archived_at' => Carbon::now()->subDays(200)]);
 
@@ -120,7 +124,7 @@ class AutomationCommandsTest extends TestCase
                 'request_source' => 'cli',
                 'headers' => [],
                 'payload' => [],
-                'status' => 'completed',
+                'status' => RelayStatus::COMPLETED,
                 'mode' => 'http',
                 'updated_at' => Carbon::now()->subDays(60)->subMinutes($index),
                 'created_at' => Carbon::now()->subDays(61)->subMinutes($index),

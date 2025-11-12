@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AtlasRelay\Enums\RelayStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -17,7 +18,7 @@ return new class extends Migration
             $table->string('request_source')->nullable();
             $table->json('headers')->nullable();
             $table->json('payload')->nullable();
-            $table->string('status', 32)->default('queued');
+            $table->unsignedTinyInteger('status')->default(RelayStatus::QUEUED->value);
             $table->string('mode', 32)->nullable();
             $table->unsignedBigInteger('route_id')->nullable();
             $table->string('route_identifier')->nullable();

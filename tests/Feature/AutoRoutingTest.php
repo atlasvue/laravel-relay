@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Models\RelayRoute;
 use AtlasRelay\Routing\RouteContext;
@@ -175,7 +176,7 @@ class AutoRoutingTest extends TestCase
                 ->relay()
         );
 
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::ROUTE_DISABLED->value, $relay->failure_reason);
         $meta = $relay->meta ?? [];
         $this->assertArrayHasKey('route', $meta['validation_errors'] ?? []);
@@ -196,7 +197,7 @@ class AutoRoutingTest extends TestCase
                 ->relay()
         );
 
-        $this->assertSame('failed', $relay->status);
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::ROUTE_DISABLED->value, $relay->failure_reason);
         $meta = $relay->meta ?? [];
         $this->assertArrayHasKey('route', $meta['validation_errors'] ?? []);

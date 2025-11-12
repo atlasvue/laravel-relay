@@ -152,7 +152,7 @@ Enums\RelayFailure
 | 100  | UNKNOWN               | Unexpected or uncategorized error.                                  |
 | 101  | PAYLOAD_TOO_LARGE     | Payload exceeds size limit (64KB). Not retried.                     |
 | 102  | NO_ROUTE_MATCH        | No matching route found for inbound path/method.                    |
-| 103  | CANCELLED             | Relay manually cancelled (applies when status = 4).                 |
+| 103  | CANCELLED             | Relay manually cancelled (applies when status = `RelayStatus::CANCELLED`, value `4`). |
 | 104  | ROUTE_TIMEOUT         | Time exceeded between inbound receipt and configured route timeout. |
 | 201  | OUTBOUND_HTTP_ERROR   | Outbound response returned a non-2xx HTTP status code.              |
 | 203  | TOO_MANY_REDIRECTS    | Redirect limit (3) exceeded during outbound request.                |

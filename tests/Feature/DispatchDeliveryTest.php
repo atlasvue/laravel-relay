@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AtlasRelay\Tests\Feature;
 
 use AtlasRelay\Enums\RelayFailure;
+use AtlasRelay\Enums\RelayStatus;
 use AtlasRelay\Exceptions\RelayJobFailedException;
 use AtlasRelay\Facades\Relay;
 use AtlasRelay\Support\RelayJobHelper;
@@ -29,7 +30,7 @@ class DispatchDeliveryTest extends TestCase
         $builder->dispatchSync(new SuccessfulJob);
 
         $relay = $this->assertRelayInstance($builder->relay());
-        $this->assertSame('completed', $relay->status);
+        $this->assertSame(RelayStatus::COMPLETED, $relay->status);
         $this->assertNull($relay->failure_reason);
     }
 
@@ -42,7 +43,7 @@ class DispatchDeliveryTest extends TestCase
             $this->fail('Expected helper failure.');
         } catch (RelayJobFailedException) {
             $relay = $this->assertRelayInstance($builder->relay());
-            $this->assertSame('failed', $relay->status);
+            $this->assertSame(RelayStatus::FAILED, $relay->status);
             $this->assertSame(RelayFailure::CANCELLED->value, $relay->failure_reason);
         }
     }
@@ -66,7 +67,7 @@ class DispatchDeliveryTest extends TestCase
         $relay->refresh();
 
         $this->assertSame(1, $relay->attempt_count);
-        $this->assertSame('completed', $relay->status);
+        $this->assertSame(RelayStatus::COMPLETED, $relay->status);
     }
 }
 
