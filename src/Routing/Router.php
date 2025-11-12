@@ -77,7 +77,7 @@ class Router
             try {
                 $result = $provider->determine($context);
             } catch (\Throwable $exception) {
-                throw RoutingException::resolverError($exception->getMessage());
+                throw RoutingException::resolverError($exception->getMessage(), $exception);
             }
 
             if ($result === null) {

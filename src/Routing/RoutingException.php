@@ -6,6 +6,7 @@ namespace AtlasRelay\Routing;
 
 use AtlasRelay\Enums\RelayFailure;
 use RuntimeException;
+use Throwable;
 
 /**
  * Class RoutingException
@@ -15,9 +16,9 @@ use RuntimeException;
  */
 class RoutingException extends RuntimeException
 {
-    public function __construct(public readonly RelayFailure $failure, string $message)
+    public function __construct(public readonly RelayFailure $failure, string $message, ?Throwable $previous = null)
     {
-        parent::__construct($message);
+        parent::__construct($message, 0, $previous);
     }
 
     public static function noRoute(string $method, string $path): self
@@ -36,8 +37,8 @@ class RoutingException extends RuntimeException
         );
     }
 
-    public static function resolverError(string $message): self
+    public static function resolverError(string $message, Throwable $previous): self
     {
-        return new self(RelayFailure::ROUTE_RESOLVER_ERROR, $message);
+        return new self(RelayFailure::ROUTE_RESOLVER_ERROR, $message, $previous);
     }
 }

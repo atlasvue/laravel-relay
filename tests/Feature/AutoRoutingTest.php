@@ -10,6 +10,7 @@ use AtlasRelay\Models\RelayRoute;
 use AtlasRelay\Routing\RouteContext;
 use AtlasRelay\Routing\Router;
 use AtlasRelay\Routing\RouteResult;
+use AtlasRelay\Routing\RoutingException;
 use AtlasRelay\Routing\RoutingProviderInterface;
 use AtlasRelay\Tests\TestCase;
 use Illuminate\Http\Request;
@@ -196,6 +197,47 @@ class AutoRoutingTest extends TestCase
         $this->assertSame(RelayFailure::ROUTE_RESOLVER_ERROR->value, $relay->failure_reason);
         $meta = $relay->meta ?? [];
         $this->assertSame('Resolver boom', $meta['validation_errors']['route'][0] ?? null);
+    }
+
+    public function test_router_resolver_errors_include_previous_exception(): void
+    {
+        $router = new Router(
+            app(\Illuminate\Contracts\Cache\Repository::class),
+            new RelayRoute()
+        );
+
+        $previous = new \RuntimeException('Resolver boom');
+
+        $router->registerProvider('failing', new class($previous) implements RoutingProviderInterface
+        {
+            public function __construct(private readonly \Throwable $exception)
+            {
+            }
+
+            public function determine(RouteContext $context): ?RouteResult
+            {
+                throw $this->exception;
+            }
+
+            public function cacheKey(RouteContext $context): ?string
+            {
+                return null;
+            }
+
+            public function cacheTtlSeconds(): ?int
+            {
+                return null;
+            }
+        });
+
+        try {
+            $router->resolve(new RouteContext('POST', '/anything'));
+            self::fail('Expected RoutingException to be thrown.');
+        } catch (RoutingException $exception) {
+            $this->assertSame(RelayFailure::ROUTE_RESOLVER_ERROR, $exception->failure);
+            $this->assertSame($previous, $exception->getPrevious());
+            $this->assertSame('Resolver boom', $exception->getMessage());
+        }
     }
 
     /**
