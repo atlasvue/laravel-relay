@@ -2,6 +2,8 @@
 
 This guide defines the conventions and best practices for contributors working on this **Laravel package repository**. These rules ensure consistency, clarity, and compatibility for all consumers installing this package via Composer.
 
+> For validation and commit requirements, see **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
+
 ---
 
 ## Purpose
