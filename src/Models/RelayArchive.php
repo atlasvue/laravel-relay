@@ -23,7 +23,6 @@ class RelayArchive extends AtlasModel
         'status' => RelayStatus::class,
         'is_retry' => 'boolean',
         'is_delay' => 'boolean',
-        'response_payload_truncated' => 'boolean',
         'retry_seconds' => 'integer',
         'retry_max_attempts' => 'integer',
         'attempt_count' => 'integer',

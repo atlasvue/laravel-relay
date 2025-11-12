@@ -93,7 +93,8 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `startAttempt(Relay $relay)` | Increment attempt counters, mark status `RelayStatus::PROCESSING`, dispatch `RelayAttemptStarted`. |
 | `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and fire `RelayCompleted`. |
 | `markFailed(Relay $relay, RelayFailure $failure, array $attributes = [], ?int $durationMs = null)` | Persist failure data, set status `RelayStatus::FAILED`, and fire `RelayFailed`. |
-| `recordResponse(Relay $relay, int $status, mixed $payload, bool $truncated = false)` | Store outbound HTTP response info. |
+| `recordResponse(Relay $relay, ?int $status, mixed $payload)` | Store outbound response metadata, applying truncation rules per delivery channel. |
+| `recordExceptionResponse(Relay $relay, Throwable $exception)` | Persist a shortened exception summary when event or job callbacks crash unexpectedly. |
 | `cancel(Relay $relay, ?RelayFailure $reason = null)` | Set status `RelayStatus::CANCELLED` and clear retry metadata. |
 | `replay(Relay $relay)` | Reset lifecycle columns and set status `RelayStatus::QUEUED`, allowing automation to pick the relay back up. |
 
@@ -183,6 +184,7 @@ Tie these commands into Laravel’s scheduler via `RelayScheduler::register($sch
 | `capture.max_payload_bytes` (`ATLAS_RELAY_MAX_PAYLOAD_BYTES`) | Max captured payload size (default 64KB). |
 | `capture.sensitive_headers`, `capture.header_whitelist`, `capture.masked_value` | Header masking allow/deny lists. |
 | `lifecycle.default_retry_seconds`, `default_retry_max_attempts`, `default_delay_seconds`, `default_timeout_seconds`, `default_http_timeout_seconds` | Global delivery defaults. |
+| `lifecycle.exception_response_max_bytes` (`ATLAS_RELAY_EXCEPTION_RESPONSE_MAX_BYTES`) | Max bytes stored for exception summaries recorded in `response_payload`. |
 | `routing.cache_ttl_seconds`, `routing.cache_store` | Router cache behaviour. |
 | `http.max_response_bytes`, `http.max_redirects`, `http.enforce_https` | Outbound HTTP safeties. |
 | `archiving.archive_after_days`, `archiving.purge_after_days`, `archiving.chunk_size` | Archiving cadence and chunk sizing. |

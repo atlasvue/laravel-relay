@@ -21,8 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
  * @property string|null $destination_type
  * @property string|null $destination_url
  * @property int|null $response_status
- * @property array<mixed>|null $response_payload
- * @property bool $response_payload_truncated
+ * @property array<mixed>|string|null $response_payload
  * @property int|null $failure_reason
  * @property bool $is_retry
  * @property int|null $retry_seconds
@@ -60,7 +59,6 @@ class Relay extends AtlasModel
         'status' => RelayStatus::class,
         'is_retry' => 'boolean',
         'is_delay' => 'boolean',
-        'response_payload_truncated' => 'boolean',
         'retry_seconds' => 'integer',
         'retry_max_attempts' => 'integer',
         'attempt_count' => 'integer',

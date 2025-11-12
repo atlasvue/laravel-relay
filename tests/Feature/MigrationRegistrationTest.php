@@ -35,7 +35,6 @@ class MigrationRegistrationTest extends TestCase
             'failure_reason',
             'response_status',
             'response_payload',
-            'response_payload_truncated',
             'is_retry',
             'retry_seconds',
             'retry_max_attempts',
