@@ -65,13 +65,45 @@ class HttpDeliveryTest extends TestCase
         $this->assertSame(RelayFailure::OUTBOUND_HTTP_ERROR->value, $relay->failure_reason);
     }
 
-    public function test_http_requires_https_targets(): void
+    public function test_http_requires_https_targets_marks_failure(): void
     {
         $builder = Relay::payload(['status' => 'queued']);
 
-        $this->expectException(RelayHttpException::class);
+        try {
+            $builder->http()->post('http://insecure.test');
+            $this->fail('RelayHttpException should have been thrown.');
+        } catch (RelayHttpException $exception) {
+            $this->assertSame('Atlas Relay HTTP deliveries require HTTPS targets.', $exception->getMessage());
+        }
 
-        $builder->http()->post('http://insecure.test');
+        $relay = $this->assertRelayInstance($builder->relay());
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
+        $this->assertSame(RelayFailure::OUTBOUND_HTTP_ERROR->value, $relay->failure_reason);
+        $this->assertNull($relay->response_status);
+        $this->assertSame('Atlas Relay HTTP deliveries require HTTPS targets.', $relay->response_payload);
+    }
+
+    public function test_http_missing_url_marks_failure(): void
+    {
+        $builder = Relay::payload(['status' => 'queued']);
+
+        try {
+            /**
+             * This call intentionally omits the required URL argument to verify guard behavior.
+             *
+             * @phpstan-ignore-next-line arguments.count
+             */
+            $builder->http()->post();
+            $this->fail('RelayHttpException should have been thrown.');
+        } catch (RelayHttpException $exception) {
+            $this->assertSame('HTTP relay calls require a target URL.', $exception->getMessage());
+        }
+
+        $relay = $this->assertRelayInstance($builder->relay());
+        $this->assertSame(RelayStatus::FAILED, $relay->status);
+        $this->assertSame(RelayFailure::OUTBOUND_HTTP_ERROR->value, $relay->failure_reason);
+        $this->assertNull($relay->response_status);
+        $this->assertSame('HTTP relay calls require a target URL.', $relay->response_payload);
     }
 
     public function test_http_connection_timeout_records_failure_reason(): void

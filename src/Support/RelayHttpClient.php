@@ -72,11 +72,23 @@ class RelayHttpClient
     {
         $url = $arguments[0] ?? null;
 
-        if (! is_string($url)) {
-            throw new RelayHttpException('HTTP relay calls require a target URL.');
-        }
+        try {
+            if (! is_string($url)) {
+                throw new RelayHttpException(
+                    'HTTP relay calls require a target URL.',
+                    RelayFailure::OUTBOUND_HTTP_ERROR
+                );
+            }
 
-        $this->assertHttps($url);
+            $this->assertHttps($url);
+        } catch (RelayHttpException $exception) {
+            $failure = $exception->failure() ?? RelayFailure::OUTBOUND_HTTP_ERROR;
+
+            $this->lifecycle->markFailed($this->relay, $failure);
+            $this->lifecycle->recordResponse($this->relay, null, $exception->getMessage());
+
+            throw $exception;
+        }
 
         $this->pendingRequest = $this->pendingRequest->withHeaders(
             $this->relay->meta['route_headers'] ?? []
@@ -141,7 +153,10 @@ class RelayHttpClient
             return;
         }
 
-        throw new RelayHttpException('Atlas Relay HTTP deliveries require HTTPS targets.');
+        throw new RelayHttpException(
+            'Atlas Relay HTTP deliveries require HTTPS targets.',
+            RelayFailure::OUTBOUND_HTTP_ERROR
+        );
     }
 
     private function evaluateRedirects(string $originalUrl, Response $response, Relay $relay, int $duration): void
