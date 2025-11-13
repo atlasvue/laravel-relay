@@ -89,85 +89,20 @@ Performs immediate inbound-to-outbound delivery, returning the response inline w
 
 ---
 
-## 🧠 Relay Lifecycle
+## 📚 Deep Dives
 
-Every webhook or payload relay is tracked from start to finish in the unified `atlas_relays` table:
+Need the full lifecycle, routing, or automation specs? The PRDs capture every rule in detail:
 
-| Status         | Description                                 |
-|----------------|---------------------------------------------|
-| **Queued**     | Payload recorded and awaiting relay action. |
-| **Processing** | Relay executing or event dispatched.        |
-| **Failed**     | Error occurred; `failure_reason` recorded.  |
-| **Completed**  | Relay finished successfully.                |
-| **Cancelled**  | Relay manually stopped before completion.   |
+- **Lifecycle & statuses** — [PRD — Atlas Relay → Status Lifecycle](./docs/PRD/PRD-Atlas-Relay.md#status-lifecycle)
+- **Retry / delay / timeout logic** — [PRD — Outbound Delivery → Retry, Delay & Timeout](./docs/PRD/PRD-Outbound-Delivery.md#retry-delay--timeout)
+- **Routing behavior & cache rules** — [PRD — Auto Routing](./docs/PRD/PRD-Routing.md#autorouting-behavior)
+- **Observability, logging & retention** — [PRD — Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md#observability)
+- **Archiving & purge schedules** — [PRD — Archiving & Logging → Archiving Process](./docs/PRD/PRD-Archiving-and-Logging.md#archiving-process)
+- **Automation jobs & cadence** — [PRD — Atlas Relay → Automation Jobs](./docs/PRD/PRD-Atlas-Relay.md#automation-jobs)
+- **Configuration reference** — [Full API Guide](./docs/Full-API.md#configuration-reference-configatlas-relayphp)
+- **Failure / error mapping** — [PRD — Outbound Delivery → Failure Reason Enum](./docs/PRD/PRD-Outbound-Delivery.md#failure-reason-enum)
 
-Learn more in [Atlas Relay PRD](./docs/PRD/PRD-Atlas-Relay.md).
-
----
-
-## 🔁 Retry, Delay & Timeout Handling
-
-Retry logic applies to **AutoRoute** deliveries (typically outbound webhooks).
-
-* **Retry** – Failed deliveries reattempt after `next_retry_at`.
-* **Delay** – Postpones initial delivery.
-* **Timeout** – Fails relays exceeding configured duration.
-
-Details: [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md)
-
----
-
-## 🧭 Routing Behavior
-
-* Matches inbound webhook routes to outbound destinations.
-* Supports dynamic paths like `/event/{CUSTOMER_ID}`.
-* 20-minute route cache with automatic invalidation on configuration changes.  
-  (See [Routing](./docs/PRD/PRD-Routing.md))
-
----
-
-## 🔍 Observability & Logging
-
-All webhook activity — inbound and outbound — is fully logged:
-
-* Request metadata (source, headers)
-* Payload and response details
-* Retry attempts and failure causes
-* Processing start (`processing_at`) and finalization (`completed_at` for completed/failed/cancelled) timestamps
-
-Every relay becomes a searchable audit trail of webhook traffic.  
-For full schema and retention behavior, see [Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md).
-
----
-
-## 🗄️ Archiving & Retention
-
-| Variable                   | Default | Description                                                     |
-|----------------------------|---------|-----------------------------------------------------------------|
-| `ATLAS_RELAY_ARCHIVE_DAYS` | 30      | Days before relays move to archive.                             |
-| `ATLAS_RELAY_PURGE_DAYS`   | 180     | Days before archived relays are deleted based on `archived_at`. |
-
-Archived rows mirror the live relay schema (including `processing_at`, `completed_at`, and `next_retry_at`) and append `archived_at`, which the purge automation uses to determine retention windows.
-
----
-
-## 🧮 Automation Jobs
-
-| Process              | Frequency        | Description                          |
-|----------------------|------------------|--------------------------------------|
-| Retry overdue        | Every minute     | Retries failed outbound webhooks.    |
-| Requeue stuck relays | Every 10 minutes | Restores relays stuck in processing. |
-| Timeout enforcement  | Hourly           | Marks expired relays as failed.      |
-| Archiving            | Daily (10 PM)    | Moves completed relays to archive.   |
-| Purging              | Daily (11 PM)    | Removes expired archive data.        |
-
-Register these jobs through `RelayScheduler` inside your console kernel (see [`docs/Install.md`](./docs/Install.md)) and adjust cadence via the `atlas-relay.automation` config map. See [Atlas Relay PRD](./docs/PRD/PRD-Atlas-Relay.md) for complete automation details.
-
----
-
-## 🔔 Observability Guidance
-
-Atlas Relay no longer emits Laravel domain events for relay lifecycle or automation milestones. Use the persisted `atlas_relays` and archive tables (or wrap the provided automation commands) if you need to push metrics into your own observability stack.
+All PRDs live under [`docs/PRD`](./docs/PRD); treat them as the source of truth when implementing or troubleshooting.
 
 ---
 
@@ -182,30 +117,6 @@ Atlas Relay no longer emits Laravel domain events for relay lifecycle or automat
 | `atlas-relay:requeue-stuck`               | Requeue relays stuck in `processing`.            |
 | `atlas-relay:enforce-timeouts`            | Mark long-running relays as timed out.           |
 | `atlas-relay:archive` / `:purge-archives` | Manage archiving and purge retention.            |
-
----
-
-## ⚙️ Configuration
-
-| Variable                   | Description                              |
-|----------------------------|------------------------------------------|
-| `QUEUE_CONNECTION`         | Queue backend for async dispatches.      |
-| `ATLAS_RELAY_ARCHIVE_DAYS` | Days before relays are archived.         |
-| `ATLAS_RELAY_PURGE_DAYS`   | Days before archived relays are deleted. |
-
----
-
-## 🚦 Error Mapping
-
-| Condition             | Result                  |
-|-----------------------|-------------------------|
-| HTTP not 2xx          | `HTTP_ERROR`            |
-| Too many redirects    | `TOO_MANY_REDIRECTS`    |
-| Redirect host changed | `REDIRECT_HOST_CHANGED` |
-| Timeout reached       | `CONNECTION_TIMEOUT`    |
-| Payload exceeds 64KB  | `PAYLOAD_TOO_LARGE`     |
-
-Error definitions and enums are in [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md).
 
 ---
 
