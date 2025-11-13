@@ -20,37 +20,13 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 
 ---
 
-## Functional Description
-
-### Inbound Entry
-- Accepts external HTTP requests or internal `Relay::request()` calls.
-- Assigns an ID immediately.
-- Capture occurs before any routing or event execution.
-- Supports synchronous or queued execution.
-
-### Header Normalization
-- Stored as lowercase JSON.
-- Duplicate keys merged; last value wins.
-- Sensitive headers masked unless whitelisted.
-
-### Payload Handling
-- Stored as JSON; max size **64KB**.
-- Oversized payloads fail with `PAYLOAD_TOO_LARGE`.
-- Empty payloads allowed.
-- Malformed JSON: raw body stored; `INVALID_PAYLOAD` applied.
-
-### Route Resolution (Optional)
-- AutoRoute attempts (method + path) lookup.
-- No match → `NO_ROUTE_MATCH`.
-- Cache lifetime: **20 minutes**; auto‑invalidates on domain/route changes.
-
 ### Relay Record Schema (`atlas_relays`)
 | Field                  | Description                                             |
 |------------------------|---------------------------------------------------------|
 | `id`                   | Relay ID.                                               |
-| `source_ip`            | Inbound IPv4 address detected from the request.        |
-| `provider`             | Optional integration/provider label (indexed).         |
-| `reference_id`         | Optional consumer-provided reference (indexed).        |
+| `source_ip`            | Inbound IPv4 address detected from the request.         |
+| `provider`             | Optional integration/provider label (indexed).          |
+| `reference_id`         | Optional consumer-provided reference (indexed).         |
 | `headers`              | Normalized header JSON.                                 |
 | `payload`              | Stored JSON payload.                                    |
 | `status`               | Enum: Queued, Processing, Completed, Failed, Cancelled. |
@@ -72,11 +48,6 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 | `completed_at`         | When the relay finished (success, failure, or cancel).  |
 | `created_at`           | Capture timestamp.                                      |
 | `updated_at`           | Last state change.                                      |
-
-### Status Handling
-- New captures start as `Queued`.
-- Failed validation sets status to `Failed` immediately.
-- Column stored as `UNSIGNED TINYINT`, backed by `RelayStatus` enum.
 
 ---
 
