@@ -91,32 +91,14 @@ Performs immediate inbound-to-outbound delivery, returning the response inline w
 
 ## 📚 Deep Dives
 
-Need the full lifecycle, routing, or automation specs? The PRDs capture every rule in detail:
-
-- **Lifecycle & statuses** — [PRD — Atlas Relay → Status Lifecycle](./docs/PRD/PRD-Atlas-Relay.md#status-lifecycle)
-- **Retry / delay / timeout logic** — [PRD — Outbound Delivery → Retry, Delay & Timeout](./docs/PRD/PRD-Outbound-Delivery.md#retry-delay--timeout)
-- **Routing behavior & cache rules** — [PRD — Auto Routing](./docs/PRD/PRD-Routing.md#autorouting-behavior)
-- **Observability, logging & retention** — [PRD — Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md#observability)
-- **Archiving & purge schedules** — [PRD — Archiving & Logging → Archiving Process](./docs/PRD/PRD-Archiving-and-Logging.md#archiving-process)
-- **Automation jobs & cadence** — [PRD — Atlas Relay → Automation Jobs](./docs/PRD/PRD-Atlas-Relay.md#automation-jobs)
-- **Configuration reference** — [Full API Guide](./docs/Full-API.md#configuration-reference-configatlas-relayphp)
-- **Failure / error mapping** — [PRD — Outbound Delivery → Failure Reason Enum](./docs/PRD/PRD-Outbound-Delivery.md#failure-reason-enum)
-
-All PRDs live under [`docs/PRD`](./docs/PRD); treat them as the source of truth when implementing or troubleshooting.
-
----
-
-## 🛠 Artisan Helpers
-
-| Command                                   | Description                                      |
-|-------------------------------------------|--------------------------------------------------|
-| `atlas-relay:routes:seed path.json`       | Seed routes from a JSON file.                    |
-| `atlas-relay:relay:inspect {id}`          | Print relay or archived relay state (JSON).      |
-| `atlas-relay:relay:restore {id}`          | Move an archived relay back into the live table. |
-| `atlas-relay:retry-overdue`               | Requeue relays whose retry window elapsed.       |
-| `atlas-relay:requeue-stuck`               | Requeue relays stuck in `processing`.            |
-| `atlas-relay:enforce-timeouts`            | Mark long-running relays as timed out.           |
-| `atlas-relay:archive` / `:purge-archives` | Manage archiving and purge retention.            |
+- [Install Guide](./docs/Install.md)
+- [Full API Reference](./docs/Full-API.md)
+- [PRD — Atlas Relay](./docs/PRD/PRD-Atlas-Relay.md)
+- [PRD — Payload Capture](./docs/PRD/PRD-Payload-Capture.md)
+- [PRD — Auto Routing](./docs/PRD/PRD-Routing.md)
+- [PRD — Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md)
+- [PRD — Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md)
+- [PRD — Example Usage](./docs/PRD/PRD-Example-Usage.md)
 
 ---
 
