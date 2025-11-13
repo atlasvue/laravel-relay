@@ -24,22 +24,22 @@ Request → Capture → Event/Dispatch/AutoRoute → Delivery → Complete → A
 
 ### Capture + Event
 ```php
-Relay::request($req)->payload($payload)->event(fn() => ...);
+Relay::request($req)->event(fn($payload) => ...);
 ```
 
 ### Capture + Dispatch Event
 ```php
-Relay::request($req)->payload($payload)->dispatchEvent(fn() => ...);
+Relay::request($req)->dispatchEvent(fn($payload) => ...);
 ```
 
 ### Auto‑Route (Dispatch)
 ```php
-Relay::request($req)->payload($p)->dispatchAutoRoute();
+Relay::request($req)->dispatchAutoRoute();
 ```
 
 ### Auto‑Route (Immediate)
 ```php
-Relay::request($req)->payload($p)->autoRouteImmediately();
+Relay::request($req)->autoRouteImmediately();
 ```
 
 ### Direct HTTP
@@ -50,7 +50,7 @@ Relay::payload($p)->http()->post('https://example.com');
 ---
 
 ## Functional Summary
-- **Relay::request()** captures inbound HTTP, normalizes headers, stores payload.
+- **Relay::request()** captures inbound HTTP, normalizes headers, stores payload, and exposes that payload directly on the builder for immediate routing/delivery usage.
 - **payload()** sets stored payload.
 - **event() / dispatchEvent()** run internal logic (sync or queued).
 - **dispatchAutoRoute()** uses domain/route mapping.

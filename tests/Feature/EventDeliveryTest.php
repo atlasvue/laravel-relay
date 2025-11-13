@@ -13,6 +13,7 @@ use Atlas\Relay\Models\Relay as RelayModel;
 use Atlas\Relay\Services\RelayDeliveryService;
 use Atlas\Relay\Support\RelayJobMiddleware;
 use Atlas\Relay\Tests\TestCase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
 use RuntimeException;
 
@@ -94,6 +95,31 @@ class EventDeliveryTest extends TestCase
         });
 
         $this->assertSame('bar:5', $result);
+    }
+
+    public function test_request_seeded_event_receives_payload_automatically(): void
+    {
+        $payload = ['foo' => 'bar', 'count' => 5];
+        $request = Request::create(
+            '/relay',
+            'POST',
+            [],
+            [],
+            [],
+            [],
+            json_encode($payload, JSON_THROW_ON_ERROR)
+        );
+        $request->headers->set('Content-Type', 'application/json');
+
+        $builder = Relay::request($request);
+        $result = $builder->event(function (array $incoming): string {
+            return sprintf('%s:%d', $incoming['foo'], $incoming['count']);
+        });
+
+        $this->assertSame('bar:5', $result);
+
+        $relay = $this->assertRelayInstance($builder->relay());
+        $this->assertSame($payload, $relay->payload);
     }
 
     public function test_event_callback_can_access_relay_instance(): void

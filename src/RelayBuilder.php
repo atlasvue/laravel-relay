@@ -16,6 +16,7 @@ use Atlas\Relay\Services\RelayCaptureService;
 use Atlas\Relay\Services\RelayDeliveryService;
 use Atlas\Relay\Support\RelayContext;
 use Atlas\Relay\Support\RelayHttpClient;
+use Atlas\Relay\Support\RequestPayloadExtractor;
 use Illuminate\Foundation\Bus\PendingChain;
 use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Http\Request;
@@ -50,6 +51,8 @@ class RelayBuilder
 
     private ?RouteResult $routeResult = null;
 
+    private RequestPayloadExtractor $payloadExtractor;
+
     private ?string $destinationMethod = null;
 
     public function __construct(
@@ -57,10 +60,12 @@ class RelayBuilder
         private readonly Router $router,
         private readonly RelayDeliveryService $deliveryService,
         ?Request $request = null,
-        mixed $payload = null
+        mixed $payload = null,
+        ?RequestPayloadExtractor $payloadExtractor = null
     ) {
         $this->payload = $payload;
         $this->request = null;
+        $this->payloadExtractor = $payloadExtractor ?? new RequestPayloadExtractor;
 
         if ($request !== null) {
             $this->applyRequest($request);
@@ -340,6 +345,14 @@ class RelayBuilder
     private function applyRequest(Request $request): void
     {
         $this->request = $request;
+
+        if ($this->payload === null) {
+            $extracted = $this->payloadExtractor->extract($request);
+
+            if ($extracted['status'] === null) {
+                $this->payload = $extracted['payload'];
+            }
+        }
 
         $this->mergeHeaders($this->extractRequestHeaders($request), false);
     }

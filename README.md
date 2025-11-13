@@ -75,41 +75,48 @@ protected function schedule(Schedule $schedule): void
 
 Atlas Relay exposes a fluent, chainable API that powers both **inbound and outbound webhook flows**.
 
-### Example A — Capture + Event Execution
+### Capture a Webhook and Process an Event
+
+Captures an inbound webhook, stores it, executes a handler, and marks the relay complete. (See [Payload Capture](./docs/PRD/PRD-Payload-Capture.md))
 ```php
+// The fun way
 Relay::request($request)->event(fn($payload) => $this->handleEvent($payload));
-```
-Captures an inbound webhook, stores it, executes a handler, and marks the relay complete.  
-(See [Payload Capture](./docs/PRD/PRD-Payload-Capture.md))
 
-### Example B — Capture + Dispatch Event
-```php
+// OR this way
 Relay::request($request)
-    ->payload($payload)
-    ->dispatchEvent(fn() => $this->handleEvent($payload));
-```
-Processes an inbound webhook asynchronously. Marks as complete once dispatched successfully.  
-(Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
+    ->event(function($payload) {
+        // process my event
+        $this->handleEvent($payload)
+    });
 
-### Example C — Auto-Route Dispatch (Inbound → Outbound)
-```php
-Relay::request($request)
-    ->payload($payload)
-    ->dispatchAutoRoute();
+// OR if you prefer to dispatch for async processing
+Relay::request($request)->dispatchEvent(fn($payload) => $this->handleEvent($payload));
+
+// OR you can dispatch a job and access payload through the relay object
+Relay::request($request)->dispatch(new ExampleJob);
 ```
-Receives a webhook and automatically delivers it to the correct outbound destination using your configured routes.  
+
+`Relay::request($request)` automatically grabs the inbound payload (JSON or form data), so your event callbacks immediately receive the decoded payload without an extra `payload()` call.
+
+---
+
+### Auto-Route Dispatch (Inbound → Outbound)
+```php
+Relay::request($request)->dispatchAutoRoute();
+```
+Receives a webhook and automatically delivers it to the correct outbound destination using your configured routes and captured payload.  
 (Relates to [Routing](./docs/PRD/PRD-Routing.md))
 
-### Example D — Auto-Route Immediate Delivery
+### Auto-Route Immediate Delivery
 ```php
-Relay::request($request)
-    ->payload($payload)
-    ->autoRouteImmediately();
+$response = Relay::request($request)->autoRouteImmediately();
 ```
-Performs immediate inbound-to-outbound delivery, returning the response inline.  
+Performs immediate inbound-to-outbound delivery, returning the response inline with the captured payload.  
 (Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
 
-### Example E — Direct Outbound Webhook
+---
+
+### Direct Outbound Webhook
 ```php
 Relay::payload($payload)
     ->http()
@@ -129,13 +136,13 @@ Use `setHeaders()` to push consumer-specific headers into outbound HTTP deliveri
 
 ### Mode Cheat Sheet
 
-| Mode         | Entry Point                             | Notes                                                                               |
-|--------------|-----------------------------------------|-------------------------------------------------------------------------------------|
+| Mode         | Entry Point                             | Notes                                                                                                                                 |
+|--------------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | HTTP         | `Relay::payload()->http()`              | Returns an `Atlas\Relay\Support\RelayHttpClient` wrapper that proxies `PendingRequest` configuration while applying relay safeguards. |
-| Event        | `Relay::request()->event()`             | Executes sync callbacks/listeners and updates lifecycle before bubbling exceptions. |
-| Dispatch     | `Relay::payload()->dispatch()`          | Returns native `PendingDispatch`; job middleware records success/failure.           |
-| DispatchSync | `Relay::payload()->dispatchSync()`      | Runs immediately in-process with lifecycle tracking.                                |
-| Auto-Route   | `Relay::request()->dispatchAutoRoute()` | Resolves routes, copies delivery defaults, and persists before delivery.            |
+| Event        | `Relay::request()->event()`             | Executes sync callbacks/listeners and updates lifecycle before bubbling exceptions.                                                   |
+| Dispatch     | `Relay::payload()->dispatch()`          | Returns native `PendingDispatch`; job middleware records success/failure.                                                             |
+| DispatchSync | `Relay::payload()->dispatchSync()`      | Runs immediately in-process with lifecycle tracking.                                                                                  |
+| Auto-Route   | `Relay::request()->dispatchAutoRoute()` | Resolves routes, copies delivery defaults, and persists before delivery.                                                              |
 
 ---
 
@@ -192,9 +199,9 @@ For full schema and retention behavior, see [Archiving & Logging](./docs/PRD/PRD
 
 ## 🗄️ Archiving & Retention
 
-| Variable                   | Default | Description                              |
-|----------------------------|---------|------------------------------------------|
-| `ATLAS_RELAY_ARCHIVE_DAYS` | 30      | Days before relays move to archive.      |
+| Variable                   | Default | Description                                                     |
+|----------------------------|---------|-----------------------------------------------------------------|
+| `ATLAS_RELAY_ARCHIVE_DAYS` | 30      | Days before relays move to archive.                             |
 | `ATLAS_RELAY_PURGE_DAYS`   | 180     | Days before archived relays are deleted based on `archived_at`. |
 
 Archived rows mirror the live relay schema (including `processing_at`, `completed_at`, and `next_retry_at`) and append `archived_at`, which the purge automation uses to determine retention windows.

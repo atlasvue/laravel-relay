@@ -25,7 +25,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 
 | Method | Description |
 | --- | --- |
-| `Relay::request(Request $request): RelayBuilder` | Seed a builder from an inbound HTTP request; headers and method feed routing heuristics. |
+| `Relay::request(Request $request): RelayBuilder` | Seed a builder from an inbound HTTP request; headers, method, and payload are copied automatically for routing heuristics and delivery callbacks. |
 | `Relay::payload(mixed $payload): RelayBuilder` | Seed a builder without an HTTP request (e.g. internal events). |
 | `Relay::cancel(Relay $relay): Relay` | Set the relay status to `cancelled` (uses lifecycle service). |
 | `Relay::replay(Relay $relay): Relay` | Reset lifecycle timestamps/attempt counts and enqueue the relay again. |
@@ -34,8 +34,8 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 
 | Method | Purpose |
 | --- | --- |
-| `request(Request $request)` | Replace/define the inbound request snapshot. |
-| `payload(mixed $payload)` | Provide raw payload data (array/stdClass/scalar). |
+| `request(Request $request)` | Replace/define the inbound request snapshot (also extracts payload when present). |
+| `payload(mixed $payload)` | Provide raw payload data (array/stdClass/scalar) or override what was extracted from the request. |
 | `mode(string $mode)` | Force a specific delivery mode label stored on the relay. |
 | `retry(?int $seconds = null, ?int $maxAttempts = null)` | Enable retry semantics and optionally override cadence / max attempts. |
 | `disableRetry()` | Explicitly disable retries even if routes suggest otherwise. |

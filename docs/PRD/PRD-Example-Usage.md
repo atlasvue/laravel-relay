@@ -105,12 +105,12 @@ Relay::payload($payload)
 // (retry/delay/timeout) to the relay at capture. Your job code stays 100% Laravel.
 
 Relay::request($request)
-    ->payload($request->all())
     ->dispatchAutoRoute();   // router selects a dispatch destination per PRD-Routing
 ```
 
 **Behavior**
 - Route defaults (`is_retry`, `retry_seconds`, `retry_max_attempts`, `is_delay`, `delay_seconds`, `timeout_seconds`, `http_timeout_seconds`) copied onto the relay at creation.
+- `Relay::request()` already captured the inbound payload, so dispatch routes receive the webhook body without an extra `payload()` call.
 - Your job is still dispatched using **Laravel native** dispatch — Atlas wraps to **record lifecycle**.
 
 ---

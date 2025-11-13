@@ -32,4 +32,24 @@ class RelayFacadeTest extends TestCase
 
         $this->assertSame($request, $context->request);
     }
+
+    public function test_request_builder_populates_payload_from_request_body(): void
+    {
+        $payload = ['status' => 'received', 'retry' => false];
+        $request = Request::create(
+            '/relay',
+            'POST',
+            [],
+            [],
+            [],
+            [],
+            json_encode($payload, JSON_THROW_ON_ERROR)
+        );
+        $request->headers->set('Content-Type', 'application/json');
+
+        $builder = Relay::request($request);
+        $context = $builder->context();
+
+        $this->assertSame($payload, $context->payload);
+    }
 }

@@ -22,6 +22,7 @@ use Atlas\Relay\Services\RelayDeliveryService;
 use Atlas\Relay\Services\RelayLifecycleService;
 use Atlas\Relay\Support\RelayJobContext;
 use Atlas\Relay\Support\RelayJobHelper;
+use Atlas\Relay\Support\RequestPayloadExtractor;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Console\Output\ConsoleOutput;
@@ -49,7 +50,10 @@ class AtlasRelayServiceProvider extends ServiceProvider
 
         $this->app->alias(Router::class, 'atlas-relay.router');
 
-        $this->app->singleton(RelayCaptureService::class, static fn (): RelayCaptureService => new RelayCaptureService(new Relay));
+        $this->app->singleton(RequestPayloadExtractor::class, RequestPayloadExtractor::class);
+        $this->app->singleton(RelayCaptureService::class, function ($app): RelayCaptureService {
+            return new RelayCaptureService(new Relay, $app->make(RequestPayloadExtractor::class));
+        });
         $this->app->singleton(RelayLifecycleService::class, RelayLifecycleService::class);
         $this->app->scoped(RelayJobContext::class, RelayJobContext::class);
         $this->app->scoped(RelayDeliveryService::class, RelayDeliveryService::class);
