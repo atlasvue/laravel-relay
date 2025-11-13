@@ -7,7 +7,7 @@ namespace Atlas\Relay\Enums;
 /**
  * Enumerates supported outbound HTTP verbs for relay deliveries.
  */
-enum DestinationMethod: string
+enum HttpMethod: string
 {
     case GET = 'GET';
     case POST = 'POST';

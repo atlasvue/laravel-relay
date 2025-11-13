@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay;
 
-use Atlas\Relay\Enums\DestinationMethod;
+use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Models\Relay;
@@ -56,6 +56,10 @@ class RelayBuilder
     private ?string $resolvedMethod = null;
 
     private ?string $resolvedUrl = null;
+
+    private ?string $provider = null;
+
+    private ?string $referenceId = null;
 
     public function __construct(
         private readonly RelayCaptureService $captureService,
@@ -190,7 +194,7 @@ class RelayBuilder
     public function context(): RelayContext
     {
         $capturedMethod = $this->resolvedMethod
-            ?? DestinationMethod::tryFromMixed($this->request?->getMethod())?->value;
+            ?? HttpMethod::tryFromMixed($this->request?->getMethod())?->value;
 
         $capturedUrl = $this->resolvedUrl ?? $this->request?->fullUrl();
 
@@ -206,8 +210,26 @@ class RelayBuilder
             $this->routeResult?->identifier,
             $capturedMethod,
             $capturedUrl,
+            $this->provider,
+            $this->referenceId,
             $this->resolvedHeaders()
         );
+    }
+
+    public function setProvider(?string $provider): self
+    {
+        $provider = is_string($provider) ? trim($provider) : null;
+        $this->provider = $provider === '' ? null : $provider;
+
+        return $this;
+    }
+
+    public function setReferenceId(?string $referenceId): self
+    {
+        $referenceId = is_string($referenceId) ? trim($referenceId) : null;
+        $this->referenceId = $referenceId === '' ? null : $referenceId;
+
+        return $this;
     }
 
     public function event(callable $callback): mixed

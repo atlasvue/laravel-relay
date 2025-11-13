@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Support;
 
-use Atlas\Relay\Enums\DestinationMethod;
+use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Exceptions\RelayHttpException;
 use Atlas\Relay\Models\Relay;
@@ -83,7 +83,7 @@ class RelayHttpClient
     private function send(string $method, ...$arguments): Response
     {
         $url = $arguments[0] ?? null;
-        $resolvedMethod = DestinationMethod::tryFromMixed($method);
+        $resolvedMethod = HttpMethod::tryFromMixed($method);
 
         $this->recordPendingHeaders();
         $relay = $this->relay();
@@ -263,7 +263,7 @@ class RelayHttpClient
         Log::warning('atlas-relay:http-method-invalid', [
             'relay_id' => $relay->id,
             'method' => $method,
-            'allowed' => DestinationMethod::values(),
+            'allowed' => HttpMethod::values(),
         ]);
     }
 
@@ -422,7 +422,7 @@ class RelayHttpClient
         return strlen($encoded);
     }
 
-    private function registerDestination(Relay $relay, string $url, DestinationMethod $method): void
+    private function registerDestination(Relay $relay, string $url, HttpMethod $method): void
     {
         $maxLength = 255;
 

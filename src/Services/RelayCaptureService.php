@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Services;
 
-use Atlas\Relay\Enums\DestinationMethod;
+use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Exceptions\InvalidDestinationUrlException;
@@ -86,7 +86,9 @@ class RelayCaptureService
 
         $attributes = array_merge($this->defaultLifecycleConfig(), $context->lifecycle);
         $attributes = array_merge($attributes, [
-            'source' => $this->determineSource($request),
+            'source_ip' => $this->determineSourceIp($request),
+            'provider' => $context->provider,
+            'reference_id' => $context->referenceId,
             'headers' => $headers,
             'payload' => $payload,
             'status' => $status,
@@ -184,12 +186,39 @@ class RelayCaptureService
         ];
     }
 
-    private function determineSource(?Request $request): ?string
+    private function determineSourceIp(?Request $request): ?string
     {
-        return $request?->ip();
+        return $this->normalizeSourceIp($request?->ip());
     }
 
-    private function determineMethod(RelayContext $context): ?DestinationMethod
+    private function normalizeSourceIp(?string $ip): ?string
+    {
+        if ($ip === null) {
+            return null;
+        }
+
+        $ip = trim($ip);
+
+        if ($ip === '') {
+            return null;
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return $ip;
+        }
+
+        if (str_contains($ip, ':') && preg_match('/(\d{1,3}\.){3}\d{1,3}$/', $ip, $matches) === 1) {
+            $candidate = $matches[0];
+
+            if (filter_var($candidate, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private function determineMethod(RelayContext $context): ?HttpMethod
     {
         $candidate = $context->method ?? $context->request?->getMethod();
 
@@ -197,7 +226,7 @@ class RelayCaptureService
             return null;
         }
 
-        $method = DestinationMethod::tryFromMixed($candidate);
+        $method = HttpMethod::tryFromMixed($candidate);
 
         if ($method === null) {
             $this->reportInvalidMethod($candidate, $context);
@@ -215,6 +244,8 @@ class RelayCaptureService
         Log::warning('atlas-relay:validation', [
             'route_id' => $attributes['route_id'] ?? null,
             'mode' => $attributes['mode'] ?? null,
+            'provider' => $attributes['provider'] ?? null,
+            'reference_id' => $attributes['reference_id'] ?? null,
             'errors' => $validationErrors,
         ]);
     }
@@ -224,7 +255,7 @@ class RelayCaptureService
         Log::warning('atlas-relay:method-invalid', [
             'provided' => $method,
             'route_id' => $context->routeId,
-            'allowed' => DestinationMethod::values(),
+            'allowed' => HttpMethod::values(),
         ]);
     }
 

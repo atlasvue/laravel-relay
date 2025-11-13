@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Tests\Feature;
 
-use Atlas\Relay\Enums\DestinationMethod;
+use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Exceptions\InvalidDestinationUrlException;
@@ -43,7 +43,7 @@ class AutoRoutingTest extends TestCase
 
         $this->assertSame($route->id, $relay->route_id);
         $this->assertSame('auto_route', $relay->mode);
-        $this->assertSame(DestinationMethod::POST, $relay->method);
+        $this->assertSame(HttpMethod::POST, $relay->method);
         $this->assertTrue($relay->is_retry);
         $this->assertSame(90, $relay->retry_seconds);
         $this->assertTrue($relay->is_delay);

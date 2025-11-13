@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Models;
 
-use Atlas\Relay\Enums\DestinationMethod;
+use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayStatus;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -12,13 +12,15 @@ use Illuminate\Database\Eloquent\Builder;
  * Represents the authoritative live relay record specified in the Payload Capture, Routing, and Outbound Delivery PRDs.
  *
  * @property positive-int $id
- * @property string|null $source
+ * @property string|null $source_ip
+ * @property string|null $provider
+ * @property string|null $reference_id
  * @property array<string, mixed>|null $headers
  * @property array<mixed>|null $payload
  * @property RelayStatus $status
  * @property string|null $mode
  * @property int|null $route_id
- * @property DestinationMethod|null $method
+ * @property HttpMethod|null $method
  * @property string|null $url
  * @property int|null $response_http_status
  * @property array<mixed>|string|null $response_payload
@@ -47,7 +49,7 @@ class Relay extends AtlasModel
         'payload' => 'array',
         'response_payload' => 'array',
         'status' => RelayStatus::class,
-        'method' => DestinationMethod::class,
+        'method' => HttpMethod::class,
         'is_retry' => 'boolean',
         'is_delay' => 'boolean',
         'retry_seconds' => 'integer',

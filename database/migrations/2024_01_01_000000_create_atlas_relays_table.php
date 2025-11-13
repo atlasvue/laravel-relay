@@ -16,7 +16,9 @@ return new class extends Migration
 
         $this->schema()->create($tableName, function (Blueprint $table): void {
             $table->bigIncrements('id');
-            $table->string('source')->nullable();
+            $table->string('source_ip', 15)->nullable();
+            $table->string('provider', 64)->nullable();
+            $table->string('reference_id', 191)->nullable();
             $table->json('headers')->nullable();
             $table->json('payload')->nullable();
             $table->unsignedTinyInteger('status')->default(RelayStatus::QUEUED->value);
@@ -43,6 +45,8 @@ return new class extends Migration
             $table->index('status');
             $table->index('next_retry_at');
             $table->index('route_id');
+            $table->index('provider');
+            $table->index('reference_id');
         });
     }
 

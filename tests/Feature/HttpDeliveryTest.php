@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Tests\Feature;
 
-use Atlas\Relay\Enums\DestinationMethod;
+use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Exceptions\RelayHttpException;
@@ -47,7 +47,7 @@ class HttpDeliveryTest extends TestCase
 
         $relay = $this->assertRelayInstance($builder->relay());
         $this->assertSame(RelayStatus::COMPLETED, $relay->status);
-        $this->assertSame(DestinationMethod::POST, $relay->method);
+        $this->assertSame(HttpMethod::POST, $relay->method);
         $this->assertSame(200, $relay->response_http_status);
         $this->assertSame(['ok' => true], $relay->response_payload);
     }
@@ -65,7 +65,33 @@ class HttpDeliveryTest extends TestCase
         $this->assertInstanceOf(RelayModel::class, $relay);
         $this->assertSame(['payload' => true], $relay->payload);
         $this->assertSame('https://example.com/relay', $relay->url);
-        $this->assertSame(DestinationMethod::POST, $relay->method);
+        $this->assertSame(HttpMethod::POST, $relay->method);
+    }
+
+    public function test_request_builder_populates_source_ip(): void
+    {
+        $request = HttpRequest::create('/relay', 'POST', [], [], [], ['REMOTE_ADDR' => '203.0.113.10']);
+
+        $relay = $this->assertRelayInstance(
+            Relay::request($request)
+                ->payload(['status' => 'queued'])
+                ->capture()
+        );
+
+        $this->assertSame('203.0.113.10', $relay->source_ip);
+    }
+
+    public function test_provider_and_reference_id_are_persisted(): void
+    {
+        $relay = $this->assertRelayInstance(
+            Relay::payload(['status' => 'queued'])
+                ->setProvider('stripe')
+                ->setReferenceId('ord-123')
+                ->capture()
+        );
+
+        $this->assertSame('stripe', $relay->provider);
+        $this->assertSame('ord-123', $relay->reference_id);
     }
 
     public function test_http_entrypoint_enforces_payload_limit(): void
@@ -103,7 +129,7 @@ class HttpDeliveryTest extends TestCase
                 $relay->refresh();
 
                 $this->assertSame('https://example.com/relay', $relay->url);
-                $this->assertSame(DestinationMethod::POST, $relay->method);
+                $this->assertSame(HttpMethod::POST, $relay->method);
 
                 return Http::response(['ok' => true], 200);
             },

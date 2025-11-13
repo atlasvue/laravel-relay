@@ -55,7 +55,7 @@ class DxCommandsTest extends TestCase
     public function test_inspect_command_outputs_relay_state(): void
     {
         $relay = Relay::query()->create([
-            'source' => 'cli',
+            'source_ip' => '127.0.0.1',
             'payload' => ['demo' => true],
             'headers' => [],
             'status' => RelayStatus::QUEUED,
@@ -71,7 +71,7 @@ class DxCommandsTest extends TestCase
     {
         $archive = RelayArchive::query()->create([
             'id' => 99,
-            'source' => 'cli',
+            'source_ip' => '127.0.0.1',
             'payload' => ['demo' => true],
             'headers' => [],
             'status' => RelayStatus::COMPLETED,

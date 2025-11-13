@@ -2,7 +2,7 @@
 # PRD — Payload Capture
 
 ## Overview
-Payload Capture is the first stage of Atlas Relay. It records every inbound payload—HTTP, internal, or programmatic—storing headers, source, and JSON data with full lifecycle visibility. All captures become relay records and move into routing and processing.
+Payload Capture is the first stage of Atlas Relay. It records every inbound payload—HTTP, internal, or programmatic—storing headers, source IP, and JSON data with full lifecycle visibility. All captures become relay records and move into routing and processing.
 
 ---
 
@@ -48,7 +48,9 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 | Field                  | Description                                             |
 |------------------------|---------------------------------------------------------|
 | `id`                   | Relay ID.                                               |
-| `source`               | Origin (IP/system).                                     |
+| `source_ip`            | Inbound IPv4 address detected from the request.        |
+| `provider`             | Optional integration/provider label (indexed).         |
+| `reference_id`         | Optional consumer-provided reference (indexed).        |
 | `headers`              | Normalized header JSON.                                 |
 | `payload`              | Stored JSON payload.                                    |
 | `status`               | Enum: Queued, Processing, Completed, Failed, Cancelled. |

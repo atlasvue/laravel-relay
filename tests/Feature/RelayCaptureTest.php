@@ -36,7 +36,7 @@ class RelayCaptureTest extends TestCase
         $this->assertInstanceOf(RelayModel::class, $relay);
         $this->assertSame(RelayStatus::QUEUED, $relay->status);
         $this->assertSame('event', $relay->mode);
-        $this->assertSame('127.0.0.1', $relay->source);
+        $this->assertSame('127.0.0.1', $relay->source_ip);
         $this->assertSame(['status' => 'queued'], $relay->payload);
         $headers = $relay->headers ?? [];
         $this->assertSame('***', $headers['authorization'] ?? null);

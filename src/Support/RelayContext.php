@@ -30,6 +30,8 @@ class RelayContext
         public readonly ?string $routeIdentifier = null,
         public readonly ?string $method = null,
         public readonly ?string $url = null,
+        public readonly ?string $provider = null,
+        public readonly ?string $referenceId = null,
         public readonly array $headers = [],
     ) {}
 }

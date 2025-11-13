@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Models;
 
-use Atlas\Relay\Enums\DestinationMethod;
+use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayStatus;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -21,7 +21,7 @@ class RelayArchive extends AtlasModel
         'payload' => 'array',
         'response_payload' => 'array',
         'status' => RelayStatus::class,
-        'method' => DestinationMethod::class,
+        'method' => HttpMethod::class,
         'is_retry' => 'boolean',
         'is_delay' => 'boolean',
         'retry_seconds' => 'integer',

@@ -23,7 +23,9 @@ class MigrationRegistrationTest extends TestCase
         $routesTable = config('atlas-relay.tables.relay_routes');
 
         $expectedLifecycleColumns = [
-            'source',
+            'source_ip',
+            'provider',
+            'reference_id',
             'headers',
             'payload',
             'status',

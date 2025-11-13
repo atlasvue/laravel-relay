@@ -35,7 +35,7 @@ class AutomationCommandsTest extends TestCase
     public function test_retry_overdue_command_requeues_relays(): void
     {
         $relay = Relay::query()->create([
-            'source' => 'cli',
+            'source_ip' => '127.0.0.1',
             'headers' => [],
             'payload' => [],
             'status' => RelayStatus::FAILED,
@@ -56,7 +56,7 @@ class AutomationCommandsTest extends TestCase
     public function test_requeue_stuck_command_moves_processing_relays_back_to_queue(): void
     {
         $relay = Relay::query()->create([
-            'source' => 'cli',
+            'source_ip' => '127.0.0.1',
             'headers' => [],
             'payload' => [],
             'status' => RelayStatus::PROCESSING,
@@ -76,7 +76,7 @@ class AutomationCommandsTest extends TestCase
     public function test_enforce_timeouts_marks_relays_failed(): void
     {
         $relay = Relay::query()->create([
-            'source' => 'cli',
+            'source_ip' => '127.0.0.1',
             'headers' => [],
             'payload' => [],
             'status' => RelayStatus::PROCESSING,
@@ -94,7 +94,7 @@ class AutomationCommandsTest extends TestCase
     public function test_archive_and_purge_commands(): void
     {
         $relay = Relay::query()->create([
-            'source' => 'cli',
+            'source_ip' => '127.0.0.1',
             'headers' => [],
             'payload' => [],
             'status' => RelayStatus::COMPLETED,
@@ -124,7 +124,7 @@ class AutomationCommandsTest extends TestCase
 
         foreach (range(1, 3) as $index) {
             Relay::query()->create([
-                'source' => 'cli',
+                'source_ip' => '127.0.0.1',
                 'headers' => [],
                 'payload' => [],
                 'status' => RelayStatus::COMPLETED,
