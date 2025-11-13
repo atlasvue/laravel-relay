@@ -10,12 +10,18 @@ use Atlas\Relay\Models\Relay;
 
 /**
  * Helper available inside jobs via the container for interacting with the active relay context.
+ *
+ * Defined by PRD: Outbound Delivery — Dispatch Mode Context Helpers.
  */
 class RelayJobHelper
 {
+    public function __construct(
+        private readonly RelayJobContext $context
+    ) {}
+
     public function relay(): ?Relay
     {
-        return RelayJobContext::current();
+        return $this->context->current();
     }
 
     /**

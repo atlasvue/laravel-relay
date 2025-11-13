@@ -139,7 +139,7 @@ class EventDeliveryTest extends TestCase
 
         $this->assertNotNull($capturedJob);
 
-        $middleware = new RelayJobMiddleware($relay->id);
+        $middleware = app()->make(RelayJobMiddleware::class, ['relayId' => $relay->id]);
         /** @var RelayDeliveryService $service */
         $service = app(RelayDeliveryService::class);
 
@@ -173,7 +173,7 @@ class EventDeliveryTest extends TestCase
 
         $this->assertNotNull($capturedJob);
 
-        $middleware = new RelayJobMiddleware($relay->id);
+        $middleware = app()->make(RelayJobMiddleware::class, ['relayId' => $relay->id]);
         /** @var RelayDeliveryService $service */
         $service = app(RelayDeliveryService::class);
 
@@ -210,7 +210,7 @@ class EventDeliveryTest extends TestCase
 
         $this->assertNotNull($capturedJob);
 
-        $middleware = new RelayJobMiddleware($relay->id);
+        $middleware = app()->make(RelayJobMiddleware::class, ['relayId' => $relay->id]);
         /** @var RelayDeliveryService $service */
         $service = app(RelayDeliveryService::class);
 
@@ -251,7 +251,7 @@ class EventDeliveryTest extends TestCase
 
         $this->assertNotNull($capturedJob);
 
-        $middleware = new RelayJobMiddleware($relay->id);
+        $middleware = app()->make(RelayJobMiddleware::class, ['relayId' => $relay->id]);
         /** @var RelayDeliveryService $service */
         $service = app(RelayDeliveryService::class);
 

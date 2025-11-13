@@ -53,7 +53,7 @@ class RelayPendingChain extends PendingChain
         }
 
         if (method_exists($job, 'through')) {
-            $job->through([new RelayJobMiddleware($this->relayId)]);
+            $job->through([$this->makeRelayJobMiddleware()]);
 
             return;
         }
@@ -68,10 +68,15 @@ class RelayPendingChain extends PendingChain
             $middleware = is_iterable($middleware) ? iterator_to_array($middleware) : [];
         }
 
-        $middleware[] = new RelayJobMiddleware($this->relayId);
+        $middleware[] = $this->makeRelayJobMiddleware();
 
         if (property_exists($job, 'middleware')) {
             $job->middleware = $middleware;
         }
+    }
+
+    private function makeRelayJobMiddleware(): RelayJobMiddleware
+    {
+        return new RelayJobMiddleware($this->relayId);
     }
 }

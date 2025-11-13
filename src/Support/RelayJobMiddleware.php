@@ -9,27 +9,28 @@ use Atlas\Relay\Exceptions\RelayJobFailedException;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Services\RelayLifecycleService;
 use Closure;
-use Illuminate\Contracts\Container\Container;
 
 /**
  * Job middleware that updates relay lifecycle state on success or failure.
+ *
+ * Defined by PRD: Outbound Delivery — Dispatch Mode Middleware Lifecycle.
  */
 class RelayJobMiddleware
 {
     public function __construct(
-        private readonly int $relayId,
-        private readonly ?Container $container = null
+        private readonly int $relayId
     ) {}
 
     public function handle(object $job, Closure $next): void
     {
-        $lifecycle = $this->container?->make(RelayLifecycleService::class)
-            ?? app(RelayLifecycleService::class);
-
+        /** @var RelayLifecycleService $lifecycle */
+        $lifecycle = app(RelayLifecycleService::class);
+        /** @var RelayJobContext $context */
+        $context = app(RelayJobContext::class);
         $relay = $this->resolveRelay();
         $relay = $lifecycle->startAttempt($relay);
 
-        RelayJobContext::set($relay);
+        $context->set($relay);
 
         $startedAt = microtime(true);
 
@@ -40,19 +41,19 @@ class RelayJobMiddleware
         } catch (RelayJobFailedException $exception) {
             $duration = $this->durationSince($startedAt);
             $lifecycle->markFailed($relay, $exception->failure, $exception->attributes, $duration);
-            RelayJobContext::clear();
+            $context->clear();
 
             throw $exception;
         } catch (\Throwable $exception) {
             $duration = $this->durationSince($startedAt);
             $lifecycle->markFailed($relay, RelayFailure::EXCEPTION, [], $duration);
             $lifecycle->recordExceptionResponse($relay, $exception);
-            RelayJobContext::clear();
+            $context->clear();
 
             throw $exception;
         }
 
-        RelayJobContext::clear();
+        $context->clear();
     }
 
     private function resolveRelay(): Relay

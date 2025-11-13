@@ -30,11 +30,14 @@ use Traversable;
 
 /**
  * Orchestrates outbound delivery modes (events, HTTP, dispatch) and lifecycle recording.
+ *
+ * Defined by PRD: Outbound Delivery — Dispatch Mode.
  */
 class RelayDeliveryService
 {
     public function __construct(
-        private readonly RelayLifecycleService $lifecycle
+        private readonly RelayLifecycleService $lifecycle,
+        private readonly RelayJobContext $context
     ) {}
 
     /**
@@ -63,7 +66,7 @@ class RelayDeliveryService
     public function dispatchEventAsync(Relay $relay, callable $callback): PendingDispatch
     {
         $job = new DispatchRelayEventJob(Closure::fromCallable($callback));
-        $job->through([new RelayJobMiddleware($relay->id)]);
+        $job->through([$this->makeRelayJobMiddleware($relay->id)]);
 
         return dispatch($job);
     }
@@ -91,7 +94,7 @@ class RelayDeliveryService
     {
         $relay = $this->lifecycle->startAttempt($relay);
         $startedAt = microtime(true);
-        RelayJobContext::set($relay);
+        $this->context->set($relay);
 
         try {
             $result = Bus::dispatchSync($job);
@@ -110,13 +113,13 @@ class RelayDeliveryService
 
             throw $exception;
         } finally {
-            RelayJobContext::clear();
+            $this->context->clear();
         }
     }
 
     public function runQueuedEventCallback(callable $callback): mixed
     {
-        $relay = RelayJobContext::current();
+        $relay = $this->context->current();
 
         if ($relay === null) {
             throw new LogicException('Relay job context is unavailable for dispatched events.');
@@ -159,6 +162,11 @@ class RelayDeliveryService
         return $job;
     }
 
+    private function makeRelayJobMiddleware(int $relayId): RelayJobMiddleware
+    {
+        return new RelayJobMiddleware($relayId);
+    }
+
     private function applyJobMiddleware(mixed $job, Relay $relay): void
     {
         if (! is_object($job)) {
@@ -166,7 +174,7 @@ class RelayDeliveryService
         }
 
         if (method_exists($job, 'through')) {
-            $job->through([new RelayJobMiddleware($relay->id)]);
+            $job->through([$this->makeRelayJobMiddleware($relay->id)]);
 
             return;
         }
@@ -181,7 +189,7 @@ class RelayDeliveryService
             $middleware = is_iterable($middleware) ? iterator_to_array($middleware) : [];
         }
 
-        $middleware[] = new RelayJobMiddleware($relay->id);
+        $middleware[] = $this->makeRelayJobMiddleware($relay->id);
 
         if (property_exists($job, 'middleware')) {
             $job->middleware = $middleware;

@@ -20,6 +20,7 @@ use Atlas\Relay\Routing\Router;
 use Atlas\Relay\Services\RelayCaptureService;
 use Atlas\Relay\Services\RelayDeliveryService;
 use Atlas\Relay\Services\RelayLifecycleService;
+use Atlas\Relay\Support\RelayJobContext;
 use Atlas\Relay\Support\RelayJobHelper;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Support\ServiceProvider;
@@ -50,9 +51,10 @@ class AtlasRelayServiceProvider extends ServiceProvider
 
         $this->app->singleton(RelayCaptureService::class, static fn (): RelayCaptureService => new RelayCaptureService(new Relay));
         $this->app->singleton(RelayLifecycleService::class, RelayLifecycleService::class);
-        $this->app->singleton(RelayDeliveryService::class, RelayDeliveryService::class);
-        $this->app->singleton(RelayJobHelper::class, RelayJobHelper::class);
-        $this->app->singleton(RelayManagerInterface::class, RelayManager::class);
+        $this->app->scoped(RelayJobContext::class, RelayJobContext::class);
+        $this->app->scoped(RelayDeliveryService::class, RelayDeliveryService::class);
+        $this->app->scoped(RelayJobHelper::class, RelayJobHelper::class);
+        $this->app->scoped(RelayManagerInterface::class, RelayManager::class);
         $this->app->alias(RelayManagerInterface::class, 'atlas-relay.manager');
     }
 

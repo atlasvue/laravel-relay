@@ -113,7 +113,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `RelayHttpClient` | Dynamic HTTP verbs (`get`, `post`, etc.) plus pass-through to `PendingRequest` configurators (e.g. `withHeaders`, `timeout`) | Enforces HTTPS (unless disabled), redirect host pinning, payload truncation, and lifecycle updates. |
 | `RelayScheduler::register(Schedule $schedule)` | Registers retry, stuck, timeout, archive, and purge commands with cron expressions sourced from `atlas-relay.automation.*`. |
 | `RelayJobMiddleware` | `handle(object $job, Closure $next)` | Add to custom jobs to automatically start/stop lifecycle attempts. |
-| `RelayJobContext` | `set()`, `current()`, `clear()` | Static helper used by middleware to expose the active relay to downstream code. |
+| `RelayJobContext` | `set()`, `current()`, `clear()` | Scoped helper resolved via the container to expose the active relay to downstream code. |
 | `RelayJobHelper` | `relay()`, `fail(RelayFailure $failure, string $message = '', array $attributes = [])` | Resolve via container inside jobs for convenience APIs. |
 | `RelayPendingChain` | Overrides `dispatch()`, `dispatchIf()`, `dispatchUnless()` | Ensures the head job in a chain also receives `RelayJobMiddleware`. |
 
@@ -215,6 +215,6 @@ Tie these commands into Laravel’s scheduler via `RelayScheduler::register($sch
 | Component | Usage |
 | --- | --- |
 | `Atlas\Relay\Support\RelayContext` | Immutable value object passed into `RelayCaptureService::capture()`; useful when asserting builder state in tests. |
-| `Atlas\Relay\Support\RelayJobContext` | Static per-job relay store; call `RelayJobContext::current()` from anywhere in the job stack. |
+| `Atlas\Relay\Support\RelayJobContext` | Scoped per-job relay store resolved via the container; call `app(RelayJobContext::class)->current()` or use `RelayJobHelper`. |
 
 Use these helpers when extending Atlas Relay, writing package tests, or integrating with your own automation around the relay lifecycle.
