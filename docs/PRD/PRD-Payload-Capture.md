@@ -62,17 +62,27 @@ If AutoRoute or route mapping is enabled:
 
 All payloads are persisted to the `atlas_relays` table (shared lifecycle model) with the following core metadata:
 
-| Field            | Description                                                         |
-|------------------|---------------------------------------------------------------------|
-| `id`             | Unique relay ID.                                                    |
-| `request_source` | Origin source (IP, system name, or identifier).                     |
-| `headers`        | Normalized header JSON.                                             |
-| `payload`        | Captured JSON payload.                                              |
-| `status`         | Lifecycle state stored as `RelayStatus` (Queued, Processing, Completed, Failed, Cancelled). |
-| `mode`           | Relay mode (event, dispatch, autoroute, direct).                    |
-| `failure_reason` | Enum describing reason for capture failure, if applicable.          |
-| `created_at`     | Timestamp of capture.                                               |
-| `updated_at`     | Timestamp of last state change.                                     |
+| Field                  | Description                                                                                                  |
+|------------------------|--------------------------------------------------------------------------------------------------------------|
+| `id`                   | Unique relay ID.                                                                                             |
+| `request_source`       | Origin source (IP, system name, or identifier).                                                              |
+| `headers`              | Normalized header JSON.                                                                                      |
+| `payload`              | Captured JSON payload.                                                                                       |
+| `status`               | Lifecycle state stored as `RelayStatus` (Queued, Processing, Completed, Failed, Cancelled).                  |
+| `mode`                 | Relay mode (event, dispatch, autoroute, direct).                                                             |
+| `failure_reason`       | Enum describing reason for capture failure or downstream execution failure, if applicable.                   |
+| `response_status`      | HTTP status code from the last outbound HTTP execution, when applicable.                                     |
+| `response_payload`     | Truncated body from the last outbound HTTP response, stored for observability.                               |
+| `is_retry`             | Boolean flag indicating whether automatic retry is enabled for this relay (AutoRoute-based deliveries only). |
+| `retry_seconds`        | Number of seconds to wait before retrying after a failed attempt.                                            |
+| `retry_max_attempts`   | Maximum number of automatic retry attempts allowed for this relay.                                           |
+| `is_delay`             | Boolean flag indicating whether initial execution is delayed.                                                |
+| `delay_seconds`        | Number of seconds to wait before the first execution when delay is enabled.                                  |
+| `timeout_seconds`      | Maximum total execution time for the relay before it is marked `Failed`.                                     |
+| `http_timeout_seconds` | Maximum HTTP client timeout, in seconds, for outbound HTTP requests.                                         |
+| `retry_at`             | Timestamp of the next scheduled retry when `is_retry` is enabled.                                            |
+| `created_at`           | Timestamp of capture.                                                                                        |
+| `updated_at`           | Timestamp of last state change.                                                                              |
 
 ### 6. Status Handling
 
@@ -95,20 +105,20 @@ Enums\RelayFailure
 * **`NULL`** represents a relay that has not failed.
 * Enum provides consistent codes, labels, and descriptions across all modules.
 
-| Code | Label                 | Description                                                         |
-|------|-----------------------|---------------------------------------------------------------------|
-| 100  | UNKNOWN               | Unexpected or uncategorized error.                                  |
-| 101  | PAYLOAD_TOO_LARGE     | Payload exceeds size limit (64KB). Not retried.                     |
-| 102  | NO_ROUTE_MATCH        | No matching route found for inbound path/method.                    |
+| Code | Label                 | Description                                                                           |
+|------|-----------------------|---------------------------------------------------------------------------------------|
+| 100  | UNKNOWN               | Unexpected or uncategorized error.                                                    |
+| 101  | PAYLOAD_TOO_LARGE     | Payload exceeds size limit (64KB). Not retried.                                       |
+| 102  | NO_ROUTE_MATCH        | No matching route found for inbound path/method.                                      |
 | 103  | CANCELLED             | Relay manually cancelled (applies when status = `RelayStatus::CANCELLED`, value `4`). |
-| 104  | ROUTE_TIMEOUT         | Time exceeded between inbound receipt and configured route timeout. |
-| 105  | INVALID_PAYLOAD       | Payload body failed JSON decoding; raw request stored and marked failed. |
-| 201  | OUTBOUND_HTTP_ERROR   | Outbound response returned a non-2xx HTTP status code.              |
-| 203  | TOO_MANY_REDIRECTS    | Redirect limit (3) exceeded during outbound request.                |
-| 204  | REDIRECT_HOST_CHANGED | Redirect attempted to a different host (security risk).             |
-| 205  | CONNECTION_ERROR      | Outbound delivery failed due to network, SSL, or DNS issues.        |
-| 206  | CONNECTION_TIMEOUT    | Outbound delivery timed out before receiving a response.            |
-| 207  | EXCEPTION             | Uncaught exception during event/dispatch execution.                 |
+| 104  | ROUTE_TIMEOUT         | Time exceeded between inbound receipt and configured route timeout.                   |
+| 105  | INVALID_PAYLOAD       | Payload body failed JSON decoding; raw request stored and marked failed.              |
+| 201  | OUTBOUND_HTTP_ERROR   | Outbound response returned a non-2xx HTTP status code.                                |
+| 203  | TOO_MANY_REDIRECTS    | Redirect limit (3) exceeded during outbound request.                                  |
+| 204  | REDIRECT_HOST_CHANGED | Redirect attempted to a different host (security risk).                               |
+| 205  | CONNECTION_ERROR      | Outbound delivery failed due to network, SSL, or DNS issues.                          |
+| 206  | CONNECTION_TIMEOUT    | Outbound delivery timed out before receiving a response.                              |
+| 207  | EXCEPTION             | Uncaught exception during event/dispatch execution.                                   |
 ## Cache Behavior
 
 * Route lookups cached by (domain, path, method) key for **20 minutes**.
