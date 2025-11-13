@@ -100,6 +100,26 @@ Relay::request($request)->dispatch(new ExampleJob);
 
 ---
 
+### Direct Outbound Webhook
+```php
+Relay::payload($payload)
+    ->http()
+    ->post('https://api.example.com/webhooks');
+```
+Sends an outbound webhook directly without route lookup. The `RelayHttpClient` wrapper still honors the usual chainable `PendingRequest` methods before executing verbs.
+(Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
+
+#### Header Propagation
+```php
+Relay::payload($payload)
+    ->setHeaders(['X-API-KEY' => '1234567890'])
+    ->http()
+    ->post('https://api.example.com/webhooks');
+```
+Use `setHeaders()` to push consumer-specific headers into outbound HTTP deliveries. When you seed the builder with `Relay::request($request)`, inbound headers are copied automatically so AutoRouting flows can forward them along with any route-defined defaults.
+
+---
+
 ### Auto-Route Dispatch (Inbound → Outbound)
 ```php
 Relay::request($request)->dispatchAutoRoute();
@@ -115,24 +135,6 @@ Performs immediate inbound-to-outbound delivery, returning the response inline w
 (Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
 
 ---
-
-### Direct Outbound Webhook
-```php
-Relay::payload($payload)
-    ->http()
-    ->post('https://api.example.com/webhooks');
-```
-Sends an outbound webhook directly without route lookup. The `RelayHttpClient` wrapper still honors the usual chainable `PendingRequest` methods before executing verbs.
-(Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
-
-### Header Propagation
-```php
-Relay::payload($payload)
-    ->setHeaders(['X-API-KEY' => '1234567890'])
-    ->http()
-    ->post('https://api.example.com/webhooks');
-```
-Use `setHeaders()` to push consumer-specific headers into outbound HTTP deliveries. When you seed the builder with `Relay::request($request)`, inbound headers are copied automatically so AutoRouting flows can forward them along with any route-defined defaults.
 
 ### Mode Cheat Sheet
 
