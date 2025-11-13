@@ -124,7 +124,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | Element | Public Surface | Usage |
 | --- | --- | --- |
 | `Router` | `registerProvider(string $name, RoutingProviderInterface $provider)`, `flushCache()`, `resolve(RouteContext $context): RouteResult` | Register programmatic providers (e.g. in a service provider) or rely on database routes. `resolve()` throws `RoutingException` when no route or resolver errors occur. |
-| `RoutingProviderInterface` | `determine(RouteContext $context): ?RouteResult`, `cacheKey(RouteContext $context): ?string`, `cacheTtlSeconds(): ?int` | Implement to provide dynamic routing; return `null` to fall through to DB lookups. |
+| `RoutingProviderInterface` | `determine(RouteContext $context): ?RouteResult`, `cacheKey(RouteContext $context): ?string`, `cacheTtlSeconds(): ?int` | Implement to provide dynamic routing; returning `null` from `cacheKey()` disables caching while non-null keys cache the result (optionally overriding TTL via `cacheTtlSeconds()`). |
 | `RouteContext` | `fromRequest(?Request $request, mixed $payload = null)`, `normalizedMethod()`, `normalizedPath()` | Build contexts from inbound request + payload for manual routing or provider testing. |
 | `RouteResult` | `fromModel(RelayRoute $route, array $parameters = [])`, `fromArray(array $data)`, `toArray()` | Value object describing resolved routes, including headers/lifecycle defaults/parameters. |
 | `RoutingException` | `noRoute()`, `disabledRoute()`, `resolverError()` | Exception type the router throws; inspect `$exception->failure` for `RelayFailure` codes. |

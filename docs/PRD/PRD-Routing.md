@@ -124,7 +124,9 @@ This enables integration with external systems or configuration-driven routing l
 
 * Routes are cached by `(method, path)` key for 20 minutes.
 * Cache invalidates automatically when routes are added, updated, or deleted.
-* Programmatic providers are not cached unless they declare `cacheable = true`.
+* Programmatic providers may opt into caching by returning a non-null key from `RoutingProviderInterface::cacheKey(RouteContext $context): ?string`.
+    * Returning `null` disables caching for that invocation, causing the provider to run on every request.
+    * When a non-null cache key is returned, the provider result is cached and `RoutingProviderInterface::cacheTtlSeconds(): ?int` can override the default TTL; returning `null` from `cacheTtlSeconds()` keeps the global routing TTL.
 
 ---
 
