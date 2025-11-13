@@ -26,7 +26,16 @@ class RelayCaptureService
     {
         $request = $context->request;
         $payload = $context->payload;
-        $headers = $this->normalizeHeaders($request);
+        $headers = $request !== null
+            ? $this->normalizeHeadersFromRequest($request)
+            : [];
+
+        if ($context->headers !== []) {
+            $manualHeaders = $this->normalizeHeaderArray($context->headers);
+            $headers = $headers === []
+                ? $manualHeaders
+                : array_merge($headers, $manualHeaders);
+        }
         $status = $context->status;
         $failureReason = $context->failureReason;
         $validationErrors = $context->validationErrors;
@@ -100,9 +109,30 @@ class RelayCaptureService
     /**
      * @return array<string, string>
      */
-    private function normalizeHeaders(?Request $request): array
+    private function normalizeHeadersFromRequest(Request $request): array
     {
-        if ($request === null) {
+        $raw = [];
+
+        foreach ($request->headers->all() as $name => $values) {
+            $value = $this->lastValue($values);
+
+            if ($value === null) {
+                continue;
+            }
+
+            $raw[$name] = $value;
+        }
+
+        return $this->normalizeHeaderArray($raw);
+    }
+
+    /**
+     * @param  array<string, mixed>  $headers
+     * @return array<string, string>
+     */
+    private function normalizeHeaderArray(array $headers): array
+    {
+        if ($headers === []) {
             return [];
         }
 
@@ -111,11 +141,12 @@ class RelayCaptureService
         $maskedValue = config('atlas-relay.capture.masked_value', '***');
 
         $normalized = [];
-        foreach ($request->headers->all() as $name => $values) {
-            $key = strtolower($name);
-            $value = $this->lastValue($values);
 
-            if ($value === null) {
+        foreach ($headers as $name => $value) {
+            $key = strtolower($name);
+            $stringValue = $this->stringifyHeaderValue($value);
+
+            if ($stringValue === null) {
                 continue;
             }
 
@@ -125,7 +156,7 @@ class RelayCaptureService
                 continue;
             }
 
-            $normalized[$key] = $value;
+            $normalized[$key] = $stringValue;
         }
 
         return $normalized;
@@ -236,6 +267,35 @@ class RelayCaptureService
         }
 
         return array_fill_keys(array_map('strtolower', $headers), true);
+    }
+
+    private function stringifyHeaderValue(mixed $value): ?string
+    {
+        if (is_array($value)) {
+            if ($value === []) {
+                return null;
+            }
+
+            $value = end($value);
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+
+        return null;
     }
 
     private function lastValue(mixed $values): ?string

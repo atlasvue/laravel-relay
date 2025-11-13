@@ -16,6 +16,7 @@ class RelayContext
     /**
      * @param  array<string, mixed>  $lifecycle
      * @param  array<string, array<int, string>>  $validationErrors
+     * @param  array<string, string>  $headers
      */
     public function __construct(
         public readonly ?Request $request,
@@ -29,5 +30,6 @@ class RelayContext
         public readonly ?string $routeIdentifier = null,
         public readonly ?string $destinationMethod = null,
         public readonly ?string $destinationUrl = null,
+        public readonly array $headers = [],
     ) {}
 }

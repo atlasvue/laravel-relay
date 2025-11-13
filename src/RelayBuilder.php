@@ -37,6 +37,11 @@ class RelayBuilder
     /** @var array<string, array<int, string>> */
     private array $validationErrors = [];
 
+    /**
+     * @var array<string, array{name:string,value:string}>
+     */
+    private array $headers = [];
+
     private ?RelayFailure $failureReason = null;
 
     private RelayStatus $status = RelayStatus::QUEUED;
@@ -54,13 +59,17 @@ class RelayBuilder
         ?Request $request = null,
         mixed $payload = null
     ) {
-        $this->request = $request;
         $this->payload = $payload;
+        $this->request = null;
+
+        if ($request !== null) {
+            $this->applyRequest($request);
+        }
     }
 
     public function request(Request $request): self
     {
-        $this->request = $request;
+        $this->applyRequest($request);
 
         return $this;
     }
@@ -112,6 +121,18 @@ class RelayBuilder
     public function timeout(?int $seconds): self
     {
         $this->lifecycleOverrides['timeout_seconds'] = $seconds;
+
+        return $this;
+    }
+
+    /**
+     * Defines outbound headers that should be forwarded with HTTP deliveries.
+     *
+     * @param  array<string, mixed>  $headers
+     */
+    public function setHeaders(array $headers): self
+    {
+        $this->mergeHeaders($headers);
 
         return $this;
     }
@@ -187,7 +208,8 @@ class RelayBuilder
             $this->routeResult?->id,
             $this->routeResult?->identifier,
             $capturedMethod,
-            $this->routeResult?->destinationUrl
+            $this->routeResult?->destinationUrl,
+            $this->resolvedHeaders()
         );
     }
 
@@ -222,7 +244,7 @@ class RelayBuilder
         $this->mode ??= 'http';
         $relay = $this->ensureRelayCaptured();
 
-        return $this->deliveryService->http($relay);
+        return $this->deliveryService->http($relay, $this->resolvedHeaders());
     }
 
     public function dispatch(mixed $job): PendingDispatch
@@ -278,6 +300,7 @@ class RelayBuilder
         $this->destinationMethod = $route->destinationMethod;
 
         $this->mergeLifecycleDefaults($route->lifecycle);
+        $this->mergeHeaders($route->headers, false);
     }
 
     /**
@@ -312,5 +335,122 @@ class RelayBuilder
         $this->capturedRelay = $this->captureService->capture($this->context());
 
         return $this->capturedRelay;
+    }
+
+    private function applyRequest(Request $request): void
+    {
+        $this->request = $request;
+
+        $this->mergeHeaders($this->extractRequestHeaders($request), false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $headers
+     */
+    private function mergeHeaders(array $headers, bool $overrideExisting = true): void
+    {
+        if ($headers === []) {
+            return;
+        }
+
+        foreach ($headers as $name => $value) {
+            $normalizedValue = $this->normalizeHeaderValue($value);
+
+            if ($normalizedValue === null) {
+                continue;
+            }
+
+            $key = strtolower($name);
+
+            if (! $overrideExisting && array_key_exists($key, $this->headers)) {
+                continue;
+            }
+
+            $this->headers[$key] = [
+                'name' => $this->normalizeHeaderName($name),
+                'value' => $normalizedValue,
+            ];
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function resolvedHeaders(): array
+    {
+        if ($this->headers === []) {
+            return [];
+        }
+
+        $resolved = [];
+
+        foreach ($this->headers as $header) {
+            $resolved[$header['name']] = $header['value'];
+        }
+
+        return $resolved;
+    }
+
+    private function normalizeHeaderName(string $header): string
+    {
+        $segments = preg_split('/[-_\s]+/', trim($header)) ?: [];
+        $segments = array_filter($segments, static fn (string $segment): bool => $segment !== '');
+
+        if ($segments === []) {
+            return $header;
+        }
+
+        $segments = array_map(static fn (string $segment): string => ucfirst(strtolower($segment)), $segments);
+
+        return implode('-', $segments);
+    }
+
+    private function normalizeHeaderValue(mixed $value): ?string
+    {
+        if (is_array($value)) {
+            if ($value === []) {
+                return null;
+            }
+
+            $value = end($value);
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function extractRequestHeaders(Request $request): array
+    {
+        $headers = [];
+
+        foreach ($request->headers->all() as $name => $values) {
+            $normalizedValue = $this->normalizeHeaderValue($values);
+
+            if ($normalizedValue === null) {
+                continue;
+            }
+
+            $headers[$name] = $normalizedValue;
+        }
+
+        return $headers;
     }
 }

@@ -17,6 +17,7 @@ use GuzzleHttp\TransferStats;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response as HttpClientResponse;
+use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
 use ReflectionMethod;
 
@@ -48,6 +49,44 @@ class HttpDeliveryTest extends TestCase
         $this->assertSame(DestinationMethod::POST, $relay->destination_method);
         $this->assertSame(200, $relay->response_http_status);
         $this->assertSame(['ok' => true], $relay->response_payload);
+    }
+
+    public function test_http_delivery_applies_custom_headers(): void
+    {
+        Http::fake([
+            'https://example.com/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $builder = Relay::payload(['status' => 'queued'])
+            ->setHeaders([
+                'X-API-KEY' => '1234567890',
+                'X-TRACE' => 'relay-run',
+            ]);
+
+        $builder->http()->post('https://example.com/relay');
+
+        Http::assertSent(function (Request $request): bool {
+            return $request->hasHeader('X-Api-Key', '1234567890')
+                && $request->hasHeader('X-Trace', 'relay-run');
+        });
+    }
+
+    public function test_http_delivery_reuses_request_headers_when_present(): void
+    {
+        Http::fake([
+            'https://example.com/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $incoming = HttpRequest::create('/relay', 'POST');
+        $incoming->headers->set('Authorization', 'Bearer inbound-token');
+        $incoming->headers->set('X-Request-Id', 'req-123');
+
+        Relay::request($incoming)->http()->post('https://example.com/relay');
+
+        Http::assertSent(function (Request $request): bool {
+            return $request->hasHeader('Authorization', 'Bearer inbound-token')
+                && $request->hasHeader('X-Request-Id', 'req-123');
+        });
     }
 
     public function test_http_failure_records_failure_reason(): void

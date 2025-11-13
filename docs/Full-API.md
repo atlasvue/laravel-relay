@@ -41,6 +41,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `disableRetry()` | Explicitly disable retries even if routes suggest otherwise. |
 | `delay(?int $seconds)` | Mark relay as delayed and set delay window. |
 | `timeout(?int $seconds)` / `httpTimeout(?int $seconds)` | Override lifecycle or HTTP timeout thresholds. |
+| `setHeaders(array $headers)` | Merge outbound HTTP headers; later calls override earlier values. |
 | `maxAttempts(?int $maxAttempts)` | Convenience helper for overriding `retry_max_attempts`. |
 | `validationError(string $field, string $message)` | Append validation feedback for reporting/logging prior to capture. |
 | `failWith(RelayFailure $failure, RelayStatus $status = RelayStatus::FAILED)` | Prefill capture state to failed with a specific failure code. |
@@ -79,11 +80,13 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | --- | --- |
 | `executeEvent(Relay $relay, callable $callback)` | Wrap synchronous callbacks with lifecycle start/finish bookkeeping. |
 | `dispatchEventAsync(Relay $relay, callable $callback)` | Queue a closure via `DispatchRelayEventJob`. |
-| `http(Relay $relay): RelayHttpClient` | Create a pending HTTP proxy bound to a relay. |
+| `http(Relay $relay, array $headers = []): RelayHttpClient` | Create a pending HTTP proxy bound to a relay and seed it with merged headers. |
 | `dispatch(Relay $relay, mixed $job)` | Dispatch queued jobs after injecting `RelayJobMiddleware`. |
 | `dispatchSync(Relay $relay, mixed $job)` | Dispatch jobs synchronously with `RelayJobContext` support. |
 | `runQueuedEventCallback(callable $callback)` | Invoked by queue workers to execute stored callbacks. |
 | `dispatchChain(Relay $relay, array $jobs)` | Produces a `RelayPendingChain` with middleware applied to every branch. |
+
+HTTP deliveries merge headers in this order: inbound request snapshot (when using `Relay::request()`), builder-level `setHeaders()` overrides, and finally any route-defined headers. Later layers win when duplicate names exist, ensuring consumer-specific overrides always take precedence.
 
 ### RelayLifecycleService
 

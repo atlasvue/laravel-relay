@@ -71,7 +71,10 @@ class RelayDeliveryService
         return dispatch($job);
     }
 
-    public function http(Relay $relay): RelayHttpClient
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function http(Relay $relay, array $headers = []): RelayHttpClient
     {
         $pending = Http::withOptions([
             'allow_redirects' => [
@@ -79,6 +82,10 @@ class RelayDeliveryService
                 'track_redirects' => true,
             ],
         ]);
+
+        if ($headers !== []) {
+            $pending = $pending->withHeaders($headers);
+        }
 
         return new RelayHttpClient($pending, $this->lifecycle, $relay);
     }

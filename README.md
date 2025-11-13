@@ -77,9 +77,7 @@ Atlas Relay exposes a fluent, chainable API that powers both **inbound and outbo
 
 ### Example A — Capture + Event Execution
 ```php
-Relay::request($request)
-    ->payload($payload)
-    ->event(fn() => $this->handleEvent($payload));
+Relay::request($request)->event(fn($payload) => $this->handleEvent($payload));
 ```
 Captures an inbound webhook, stores it, executes a handler, and marks the relay complete.  
 (See [Payload Capture](./docs/PRD/PRD-Payload-Capture.md))
@@ -119,6 +117,15 @@ Relay::payload($payload)
 ```
 Sends an outbound webhook directly without route lookup. The `RelayHttpClient` wrapper still honors the usual chainable `PendingRequest` methods before executing verbs.
 (Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
+
+### Header Propagation
+```php
+Relay::payload($payload)
+    ->setHeaders(['X-API-KEY' => '1234567890'])
+    ->http()
+    ->post('https://api.example.com/webhooks');
+```
+Use `setHeaders()` to push consumer-specific headers into outbound HTTP deliveries. When you seed the builder with `Relay::request($request)`, inbound headers are copied automatically so AutoRouting flows can forward them along with any route-defined defaults.
 
 ### Mode Cheat Sheet
 
