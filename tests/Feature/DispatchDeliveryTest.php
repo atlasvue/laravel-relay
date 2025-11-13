@@ -26,38 +26,75 @@ use Illuminate\Support\Facades\Queue;
  */
 class DispatchDeliveryTest extends TestCase
 {
-    public function test_dispatch_sync_updates_relay_status(): void
+    public function test_dispatch_job_populates_context_and_marks_completion(): void
     {
+        Queue::fake();
+
         $builder = Relay::payload(['foo' => 'bar']);
         $context = app(RelayJobContext::class);
 
-        $this->assertNull($context->current());
-
-        $builder->dispatchSync(new SuccessfulJob);
+        $builder->dispatch(new SuccessfulJob);
 
         $relay = $this->assertRelayInstance($builder->relay());
+
+        $capturedJob = null;
+        Queue::assertPushed(SuccessfulJob::class, function (SuccessfulJob $job) use (&$capturedJob): bool {
+            $capturedJob = $job;
+
+            return true;
+        });
+
+        $this->assertNotNull($capturedJob);
+
+        $middleware = $capturedJob->middleware[0] ?? null;
+        $this->assertInstanceOf(RelayJobMiddleware::class, $middleware);
+
+        $this->assertNull($context->current());
+
+        $middleware->handle($capturedJob, function (SuccessfulJob $job) use ($context): void {
+            $this->assertNotNull($context->current());
+            $job->handle();
+        });
+
+        $this->assertNull($context->current());
+
+        $relay->refresh();
         $this->assertSame(RelayStatus::COMPLETED, $relay->status);
         $this->assertNull($relay->failure_reason);
-        $this->assertNull($context->current());
     }
 
-    public function test_job_helper_can_mark_failure(): void
+    public function test_job_helper_can_mark_failure_for_queued_job(): void
     {
-        $builder = Relay::payload(['foo' => 'bar']);
-        $context = app(RelayJobContext::class);
+        Queue::fake();
 
-        $this->assertNull($context->current());
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        $builder->dispatch(new FailingJob);
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $capturedJob = null;
+        Queue::assertPushed(FailingJob::class, function (FailingJob $job) use (&$capturedJob): bool {
+            $capturedJob = $job;
+
+            return true;
+        });
+
+        $this->assertNotNull($capturedJob);
+
+        $middleware = $capturedJob->middleware[0] ?? null;
+        $this->assertInstanceOf(RelayJobMiddleware::class, $middleware);
 
         try {
-            $builder->dispatchSync(new FailingJob);
+            $middleware->handle($capturedJob, function (FailingJob $job): void {
+                $job->handle();
+            });
             $this->fail('Expected helper failure.');
         } catch (RelayJobFailedException) {
-            $relay = $this->assertRelayInstance($builder->relay());
+            $relay->refresh();
             $this->assertSame(RelayStatus::FAILED, $relay->status);
             $this->assertSame(RelayFailure::CANCELLED->value, $relay->failure_reason);
         }
-
-        $this->assertNull($context->current());
     }
 
     public function test_dispatch_returns_pending_dispatch(): void

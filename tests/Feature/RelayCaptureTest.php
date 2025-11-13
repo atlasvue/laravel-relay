@@ -50,20 +50,6 @@ class RelayCaptureTest extends TestCase
         $this->assertSame(30, $relay->http_timeout_seconds);
     }
 
-    public function test_manual_headers_are_captured_when_request_missing(): void
-    {
-        $relay = Relay::payload(['status' => 'queued'])
-            ->setHeaders([
-                'X-API-KEY' => 'secret-key',
-                'X-Trace' => 'relay-run',
-            ])
-            ->capture();
-
-        $headers = $relay->headers ?? [];
-        $this->assertSame('***', $headers['x-api-key'] ?? null);
-        $this->assertSame('relay-run', $headers['x-trace'] ?? null);
-    }
-
     public function test_whitelisted_headers_are_not_masked(): void
     {
         $originalSensitive = config('atlas-relay.capture.sensitive_headers');

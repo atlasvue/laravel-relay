@@ -118,17 +118,18 @@ class HttpDeliveryTest extends TestCase
             'https://example.com/*' => Http::response(['ok' => true], 200),
         ]);
 
-        $builder = Relay::payload(['status' => 'queued'])
-            ->setHeaders([
+        $builder = Relay::payload(['status' => 'queued']);
+
+        $builder->http()
+            ->withHeaders([
                 'X-API-KEY' => '1234567890',
                 'X-TRACE' => 'relay-run',
-            ]);
-
-        $builder->http()->post('https://example.com/relay');
+            ])
+            ->post('https://example.com/relay');
 
         Http::assertSent(function (Request $request): bool {
-            return $request->hasHeader('X-Api-Key', '1234567890')
-                && $request->hasHeader('X-Trace', 'relay-run');
+            return $request->hasHeader('X-API-KEY', '1234567890')
+                && $request->hasHeader('X-TRACE', 'relay-run');
         });
     }
 
@@ -148,6 +149,28 @@ class HttpDeliveryTest extends TestCase
             return $request->hasHeader('Authorization', 'Bearer inbound-token')
                 && $request->hasHeader('X-Request-Id', 'req-123');
         });
+    }
+
+    public function test_http_delivery_captures_custom_headers_on_relay_record(): void
+    {
+        Http::fake([
+            'https://example.com/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $builder = Relay::payload(['status' => 'queued']);
+
+        $builder->http()
+            ->withHeaders([
+                'Authorization' => 'Bearer outbound-token',
+                'X-Trace' => 'relay-run',
+            ])
+            ->post('https://example.com/relay');
+
+        $relay = $this->assertRelayInstance($builder->relay());
+        $headers = $relay->headers ?? [];
+
+        $this->assertSame('***', $headers['authorization'] ?? null);
+        $this->assertSame('relay-run', $headers['x-trace'] ?? null);
     }
 
     public function test_http_failure_records_failure_reason(): void
@@ -269,7 +292,7 @@ class HttpDeliveryTest extends TestCase
     {
         $builder = Relay::payload(['status' => 'queued']);
         $client = $builder->http();
-        $relay = $this->assertRelayInstance($builder->relay());
+        $relay = $this->assertRelayInstance($builder->capture());
 
         $body = json_encode(['ok' => true], JSON_THROW_ON_ERROR);
         $psrResponse = new PsrResponse(200, [], $body);

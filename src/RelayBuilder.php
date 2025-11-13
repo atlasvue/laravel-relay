@@ -130,18 +130,6 @@ class RelayBuilder
         return $this;
     }
 
-    /**
-     * Defines outbound headers that should be forwarded with HTTP deliveries.
-     *
-     * @param  array<string, mixed>  $headers
-     */
-    public function setHeaders(array $headers): self
-    {
-        $this->mergeHeaders($headers);
-
-        return $this;
-    }
-
     public function httpTimeout(?int $seconds): self
     {
         $this->lifecycleOverrides['http_timeout_seconds'] = $seconds;
@@ -226,14 +214,6 @@ class RelayBuilder
         return $this->deliveryService->executeEvent($relay, $callback);
     }
 
-    public function dispatchEvent(callable $callback): mixed
-    {
-        $this->mode ??= 'dispatch_event';
-        $relay = $this->ensureRelayCaptured();
-
-        return $this->deliveryService->dispatchEventAsync($relay, $callback);
-    }
-
     public function dispatchAutoRoute(): self
     {
         return $this->handleAutoRoute('auto_route');
@@ -247,9 +227,16 @@ class RelayBuilder
     public function http(): RelayHttpClient
     {
         $this->mode ??= 'http';
-        $relay = $this->ensureRelayCaptured();
 
-        return $this->deliveryService->http($relay, $this->resolvedHeaders());
+        $headerRecorder = function (array $headers): void {
+            $this->mergeHeaders($headers);
+        };
+
+        return $this->deliveryService->http(
+            fn (): Relay => $this->ensureRelayCaptured(),
+            $this->resolvedHeaders(),
+            $headerRecorder
+        );
     }
 
     public function dispatch(mixed $job): PendingDispatch
@@ -258,14 +245,6 @@ class RelayBuilder
         $relay = $this->ensureRelayCaptured();
 
         return $this->deliveryService->dispatch($relay, $job);
-    }
-
-    public function dispatchSync(mixed $job): mixed
-    {
-        $this->mode ??= 'dispatch_sync';
-        $relay = $this->ensureRelayCaptured();
-
-        return $this->deliveryService->dispatchSync($relay, $job);
     }
 
     /**

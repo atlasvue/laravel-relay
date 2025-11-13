@@ -37,20 +37,7 @@ $pending->onQueue('critical')
 
 ---
 
-## 2) Synchronous Dispatch via Atlas
-
-```php
-Relay::request($request)
-    ->dispatchSync(new ExampleJob($request->all()));   // thin wrapper over dispatchSync()
-```
-
-**Behavior**
-- Runs in the same request cycle.
-- Atlas marks the relay **Completed** on success or **Failed** with mapped `failure_reason` on exception.
-
----
-
-## 3) Dispatch with Job Settings ($tries, backoff, middleware)
+## 2) Dispatch with Job Settings ($tries, backoff, middleware)
 
 ```php
 // ExampleJob.php
@@ -79,7 +66,7 @@ Relay::request($request)->dispatch(new ExampleJob($request->all()))->onQueue('de
 
 ---
 
-## 4) Chaining Jobs via Atlas (Bus::chain)
+## 3) Chaining Jobs via Atlas (Bus::chain)
 
 ```php
 use Illuminate\Support\Facades\Bus;
@@ -98,7 +85,7 @@ Relay::request($request)
 
 ---
 
-## 5) Combine AutoRoute + Dispatch
+## 4) Combine AutoRoute + Dispatch
 
 ```php
 // If your route resolves to a dispatch-type destination, Atlas copies route defaults
@@ -115,7 +102,7 @@ Relay::request($request)
 
 ---
 
-## 6) Direct HTTP (for reference)
+## 5) Direct HTTP (for reference)
 
 ```php
 Relay::http()
@@ -134,6 +121,6 @@ Relay::http()
 
 ## Notes
 
-- Atlas **dispatch/dispatchSync/dispatchChain** are **thin wrappers** that return the **same Laravel types** you expect and preserve **all Laravel controls**.
+- Atlas **dispatch/dispatchChain** helpers are **thin wrappers** that return the **same Laravel types** you expect and preserve **all Laravel controls**.
 - Atlas **never** forces new base classes or job signatures.
 - Lifecycle and error mapping happen **automatically** (and are written to the relay record and logs).

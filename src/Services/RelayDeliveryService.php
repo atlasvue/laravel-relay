@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace Atlas\Relay\Services;
 
 use Atlas\Relay\Enums\RelayFailure;
-use Atlas\Relay\Exceptions\RelayJobFailedException;
-use Atlas\Relay\Jobs\DispatchRelayEventJob;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Support\RelayHttpClient;
-use Atlas\Relay\Support\RelayJobContext;
 use Atlas\Relay\Support\RelayJobMiddleware;
 use Atlas\Relay\Support\RelayPendingChain;
 use Closure;
@@ -18,10 +15,8 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Bus\PendingChain;
 use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use JsonSerializable;
-use LogicException;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
@@ -37,7 +32,6 @@ class RelayDeliveryService
 {
     public function __construct(
         private readonly RelayLifecycleService $lifecycle,
-        private readonly RelayJobContext $context
     ) {}
 
     /**
@@ -63,18 +57,12 @@ class RelayDeliveryService
         }
     }
 
-    public function dispatchEventAsync(Relay $relay, callable $callback): PendingDispatch
-    {
-        $job = new DispatchRelayEventJob(Closure::fromCallable($callback));
-        $job->through([$this->makeRelayJobMiddleware($relay->id)]);
-
-        return dispatch($job);
-    }
-
     /**
+     * @param  \Closure(): \Atlas\Relay\Models\Relay  $relayResolver
      * @param  array<string, string>  $headers
+     * @param  \Closure(array<string, mixed>): void|null  $headerRecorder
      */
-    public function http(Relay $relay, array $headers = []): RelayHttpClient
+    public function http(Closure $relayResolver, array $headers = [], ?Closure $headerRecorder = null): RelayHttpClient
     {
         $pending = Http::withOptions([
             'allow_redirects' => [
@@ -87,7 +75,7 @@ class RelayDeliveryService
             $pending = $pending->withHeaders($headers);
         }
 
-        return new RelayHttpClient($pending, $this->lifecycle, $relay);
+        return new RelayHttpClient($pending, $this->lifecycle, $relayResolver, $headerRecorder);
     }
 
     public function dispatch(Relay $relay, mixed $job): PendingDispatch
@@ -95,44 +83,6 @@ class RelayDeliveryService
         $this->applyJobMiddleware($job, $relay);
 
         return dispatch($job);
-    }
-
-    public function dispatchSync(Relay $relay, mixed $job): mixed
-    {
-        $relay = $this->lifecycle->startAttempt($relay);
-        $startedAt = microtime(true);
-        $this->context->set($relay);
-
-        try {
-            $result = Bus::dispatchSync($job);
-            $duration = $this->durationSince($startedAt);
-            $this->lifecycle->markCompleted($relay, [], $duration);
-
-            return $result;
-        } catch (RelayJobFailedException $exception) {
-            $duration = $this->durationSince($startedAt);
-            $this->lifecycle->markFailed($relay, $exception->failure, $exception->attributes, $duration);
-            throw $exception;
-        } catch (\Throwable $exception) {
-            $duration = $this->durationSince($startedAt);
-            $this->lifecycle->markFailed($relay, RelayFailure::EXCEPTION, [], $duration);
-            $this->lifecycle->recordExceptionResponse($relay, $exception);
-
-            throw $exception;
-        } finally {
-            $this->context->clear();
-        }
-    }
-
-    public function runQueuedEventCallback(callable $callback): mixed
-    {
-        $relay = $this->context->current();
-
-        if ($relay === null) {
-            throw new LogicException('Relay job context is unavailable for dispatched events.');
-        }
-
-        return $this->invokeEventCallback($relay, $callback);
     }
 
     /**

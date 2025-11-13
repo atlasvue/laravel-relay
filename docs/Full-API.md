@@ -42,7 +42,6 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `disableRetry()` | Explicitly disable retries even if routes suggest otherwise. |
 | `delay(?int $seconds)` | Mark relay as delayed and set delay window. |
 | `timeout(?int $seconds)` / `httpTimeout(?int $seconds)` | Override lifecycle or HTTP timeout thresholds. |
-| `setHeaders(array $headers)` | Merge outbound HTTP headers; later calls override earlier values. |
 | `maxAttempts(?int $maxAttempts)` | Convenience helper for overriding `retry_max_attempts`. |
 | `validationError(string $field, string $message)` | Append validation feedback for reporting/logging prior to capture. |
 | `failWith(RelayFailure $failure, RelayStatus $status = RelayStatus::FAILED)` | Prefill capture state to failed with a specific failure code. |
@@ -63,12 +62,10 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | Method | Description |
 | --- | --- |
 | `event(callable $callback): mixed` | Captures the relay and executes the callback synchronously; the callback receives `(payload, Relay)` when it accepts parameters. |
-| `dispatchEvent(callable $callback): PendingDispatch` | Persists then dispatches `DispatchRelayEventJob` to run the callback asynchronously. |
 | `dispatchAutoRoute(): self` | Uses the Router to resolve an outbound destination, persists the relay, and queues delivery. |
 | `autoRouteImmediately(): self` | Same as above but returns immediately after synchronous HTTP execution. |
 | `http(): RelayHttpClient` | Returns a HTTP proxy constrained by PRD HTTPS/redirect rules; call verbs like `->post($url, $payload)`. |
 | `dispatch(mixed $job): PendingDispatch` | Dispatches any Laravel job while injecting relay middleware for lifecycle tracking. |
-| `dispatchSync(mixed $job): mixed` | Runs the job synchronously with lifecycle guards and propagates `RelayJobFailedException`. |
 | `dispatchChain(array $jobs): PendingChain` | Builds a chain/chain-of-chains while ensuring each job carries relay middleware. |
 
 ---
@@ -80,14 +77,12 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | Method | Use Case |
 | --- | --- |
 | `executeEvent(Relay $relay, callable $callback)` | Wrap synchronous callbacks with lifecycle start/finish bookkeeping. |
-| `dispatchEventAsync(Relay $relay, callable $callback)` | Queue a closure via `DispatchRelayEventJob`. |
 | `http(Relay $relay, array $headers = []): RelayHttpClient` | Create a pending HTTP proxy bound to a relay and seed it with merged headers. |
 | `dispatch(Relay $relay, mixed $job)` | Dispatch queued jobs after injecting `RelayJobMiddleware`. |
-| `dispatchSync(Relay $relay, mixed $job)` | Dispatch jobs synchronously with `RelayJobContext` support. |
 | `runQueuedEventCallback(callable $callback)` | Invoked by queue workers to execute stored callbacks. |
 | `dispatchChain(Relay $relay, array $jobs)` | Produces a `RelayPendingChain` with middleware applied to every branch. |
 
-HTTP deliveries merge headers in this order: inbound request snapshot (when using `Relay::request()`), builder-level `setHeaders()` overrides, and finally any route-defined headers. Later layers win when duplicate names exist, ensuring consumer-specific overrides always take precedence.
+HTTP deliveries merge headers in this order: inbound request snapshot (when using `Relay::request()`), headers you configure directly on the returned Laravel HTTP client (via `withHeaders()`, `accept()`, etc.), and finally any route-defined headers. Later layers win when duplicate names exist, ensuring consumer-specific overrides always take precedence.
 
 ### RelayLifecycleService
 
@@ -195,7 +190,6 @@ Tie these commands into Laravel’s scheduler via `RelayScheduler::register($sch
 
 | Job | Purpose |
 | --- | --- |
-| `Atlas\Relay\Jobs\DispatchRelayEventJob` | Queued wrapper that calls `RelayDeliveryService::runQueuedEventCallback()` with the serialized closure provided by `RelayBuilder::dispatchEvent()`. Middleware automatically maintains lifecycle state. |
 
 ---
 

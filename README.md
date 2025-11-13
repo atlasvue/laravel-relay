@@ -48,8 +48,6 @@ Additional setup instructions (config publish, migrations, scheduler, etc.) live
 Relay::request($request)->event(fn($payload) => $this->handleEvent($payload));
 
 // OR you can dispatch for async processing
-Relay::request($request)->dispatchEvent(fn($payload) => $this->handleEvent($payload));
-
 // OR you can dispatch a job and access payload through the relay object
 Relay::request($request)->dispatch(new ExampleJob);
 ```
@@ -70,7 +68,7 @@ Relay::http()->withHeaders([
     'X-API-KEY' => '1234567890'
 ])->post('https://api.example.com/webhooks', $payload);
 ```
-You can use the Laravel `http()` methods you're most likely already using. When you start from `Relay::request($request)`, inbound headers are copied automatically—just call `->setHeaders()` on that builder before `->http()` if you need to merge your own values. (See [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md)).
+You can use the Laravel `http()` methods you're most likely already using. When you start from `Relay::request($request)`, inbound headers are copied automatically—just configure the HTTP client with `withHeaders()`, `accept()`, etc., and Atlas will record those values for you. (See [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md)).
 
 ---
 

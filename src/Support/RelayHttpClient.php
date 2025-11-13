@@ -9,6 +9,7 @@ use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Exceptions\RelayHttpException;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Services\RelayLifecycleService;
+use Closure;
 use GuzzleHttp\Exception\TooManyRedirectsException;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\Client\ConnectionException;
@@ -21,6 +22,7 @@ use JsonSerializable;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
+use RuntimeException;
 use Traversable;
 
 /**
@@ -32,6 +34,8 @@ use Traversable;
  * @method Response patch(string $url, mixed ...$arguments)
  * @method Response delete(string $url, mixed ...$arguments)
  * @method Response head(string $url, mixed ...$arguments)
+ *
+ * @mixin PendingRequest
  */
 class RelayHttpClient
 {
@@ -45,18 +49,21 @@ class RelayHttpClient
     public function __construct(
         private PendingRequest $pendingRequest,
         private readonly RelayLifecycleService $lifecycle,
-        private readonly Relay $relay
+        private readonly Closure $relayResolver,
+        private readonly ?Closure $headerRecorder = null
     ) {}
+
+    private ?Relay $resolvedRelay = null;
 
     /**
      * @param  array<int, mixed>  $arguments
      */
     public function __call(string $method, array $arguments): mixed
     {
-        $method = strtolower($method);
+        $normalized = strtolower($method);
 
-        if (in_array($method, $this->verbs, true)) {
-            return $this->send($method, ...$arguments);
+        if (in_array($normalized, $this->verbs, true)) {
+            return $this->send($normalized, ...$arguments);
         }
 
         $result = $this->pendingRequest->{$method}(...$arguments);
@@ -78,6 +85,9 @@ class RelayHttpClient
         $url = $arguments[0] ?? null;
         $destinationMethod = DestinationMethod::tryFromMixed($method);
 
+        $this->recordPendingHeaders();
+        $relay = $this->relay();
+
         try {
             if (! is_string($url)) {
                 throw new RelayHttpException(
@@ -87,7 +97,7 @@ class RelayHttpClient
             }
 
             if ($destinationMethod === null) {
-                $this->reportInvalidMethod($method);
+                $this->reportInvalidMethod($relay, $method);
 
                 throw new RelayHttpException(
                     sprintf('Unsupported HTTP method [%s] for relay delivery.', $method),
@@ -96,18 +106,18 @@ class RelayHttpClient
             }
 
             $this->assertHttps($url);
-            $this->registerPayloadFromArguments($arguments);
-            $this->registerDestination($url, $destinationMethod);
+            $this->registerPayloadFromArguments($relay, $arguments);
+            $this->registerDestination($relay, $url, $destinationMethod);
         } catch (RelayHttpException $exception) {
             $failure = $exception->failure() ?? RelayFailure::OUTBOUND_HTTP_ERROR;
 
-            $this->lifecycle->markFailed($this->relay, $failure);
-            $this->lifecycle->recordResponse($this->relay, null, $exception->getMessage());
+            $this->lifecycle->markFailed($relay, $failure);
+            $this->lifecycle->recordResponse($relay, null, $exception->getMessage());
 
             throw $exception;
         }
 
-        $relay = $this->lifecycle->startAttempt($this->relay);
+        $relay = $this->lifecycle->startAttempt($relay);
         $startedAt = microtime(true);
         $this->applyRedirectGuards($url, $relay, $startedAt);
 
@@ -207,6 +217,40 @@ class RelayHttpClient
         return (int) max(0, round((microtime(true) - $startedAt) * 1000));
     }
 
+    private function relay(): Relay
+    {
+        if ($this->resolvedRelay instanceof Relay) {
+            return $this->resolvedRelay;
+        }
+
+        $resolver = $this->relayResolver;
+        $relay = $resolver();
+
+        if (! $relay instanceof Relay) {
+            throw new RuntimeException('Relay resolver must return a Relay instance.');
+        }
+
+        $this->resolvedRelay = $relay;
+
+        return $this->resolvedRelay;
+    }
+
+    private function recordPendingHeaders(): void
+    {
+        if ($this->headerRecorder === null) {
+            return;
+        }
+
+        $headers = $this->pendingRequest->getOptions()['headers'] ?? [];
+
+        if (! is_array($headers) || $headers === []) {
+            return;
+        }
+
+        $recorder = $this->headerRecorder;
+        $recorder($headers);
+    }
+
     private function failureForConnectionException(ConnectionException $exception): RelayFailure
     {
         return Str::contains(strtolower($exception->getMessage()), 'timed out')
@@ -214,10 +258,10 @@ class RelayHttpClient
             : RelayFailure::CONNECTION_ERROR;
     }
 
-    private function reportInvalidMethod(string $method): void
+    private function reportInvalidMethod(Relay $relay, string $method): void
     {
         Log::warning('atlas-relay:http-method-invalid', [
-            'relay_id' => $this->relay->id,
+            'relay_id' => $relay->id,
             'method' => $method,
             'allowed' => DestinationMethod::values(),
         ]);
@@ -291,9 +335,9 @@ class RelayHttpClient
     /**
      * @param  array<int, mixed>  $arguments
      */
-    private function registerPayloadFromArguments(array $arguments): void
+    private function registerPayloadFromArguments(Relay $relay, array $arguments): void
     {
-        if ($this->relay->payload !== null) {
+        if ($relay->payload !== null) {
             return;
         }
 
@@ -319,7 +363,7 @@ class RelayHttpClient
             );
         }
 
-        $this->relay->forceFill(['payload' => $normalized])->save();
+        $relay->forceFill(['payload' => $normalized])->save();
     }
 
     private function normalizeOutgoingPayload(mixed $payload): mixed
@@ -378,7 +422,7 @@ class RelayHttpClient
         return strlen($encoded);
     }
 
-    private function registerDestination(string $url, DestinationMethod $method): void
+    private function registerDestination(Relay $relay, string $url, DestinationMethod $method): void
     {
         $maxLength = 255;
 
@@ -391,11 +435,11 @@ class RelayHttpClient
 
         $attributes = [];
 
-        if ($this->relay->destination_url !== $url) {
+        if ($relay->destination_url !== $url) {
             $attributes['destination_url'] = $url;
         }
 
-        if ($this->relay->destination_method?->value !== $method->value) {
+        if ($relay->destination_method?->value !== $method->value) {
             $attributes['destination_method'] = $method;
         }
 
@@ -403,6 +447,6 @@ class RelayHttpClient
             return;
         }
 
-        $this->relay->forceFill($attributes)->save();
+        $relay->forceFill($attributes)->save();
     }
 }

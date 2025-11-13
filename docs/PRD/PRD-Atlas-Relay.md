@@ -27,9 +27,9 @@ Request → Capture → Event/Dispatch/AutoRoute → Delivery → Complete → A
 Relay::request($req)->event(fn($payload) => ...);
 ```
 
-### Capture + Dispatch Event
+### Capture + Dispatch Job
 ```php
-Relay::request($req)->dispatchEvent(fn($payload) => ...);
+Relay::request($req)->dispatch(new ExampleJob($payload));
 ```
 
 ### Auto‑Route (Dispatch)
@@ -52,7 +52,7 @@ Relay::http()->post('https://example.com', ['payload' => true]);
 ## Functional Summary
 - **Relay::request()** captures inbound HTTP, normalizes headers, stores payload, and exposes that payload directly on the builder for immediate routing/delivery usage.
 - **payload()** sets stored payload (optional when using `Relay::http()` because payload is captured from the request data).
-- **event() / dispatchEvent()** run internal logic (sync or queued).
+- **event()** runs internal logic synchronously.
 - **dispatchAutoRoute()** uses domain/route mapping.
 - **autoRouteImmediately()** delivers synchronously and returns response.
 - **http()** sends direct outbound HTTP (Laravel `Http` wrapper).
@@ -79,7 +79,7 @@ Full schema lives in **Payload Capture PRD** (`atlas_relays` includes all reques
 Rules:
 - All relay types use the same lifecycle.
 - Exceptions or failed outbound responses set status to `Failed` and populate `failure_reason`.
-- `event()` / `dispatchEvent()` → complete when handler/job succeeds.
+- `event()` → completes when handler succeeds.
 - AutoRoute variants complete/fail based on HTTP outcome.
 - Direct HTTP completes/fails based on response.
 
