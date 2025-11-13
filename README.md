@@ -110,8 +110,7 @@ You can use the Laravel `http()` methods you're most likely already using. (See 
 ```php
 Relay::request($request)->dispatchAutoRoute();
 ```
-Receives a webhook and automatically delivers it to the correct outbound destination using your configured routes and captured payload.  
-(Relates to [Routing](./docs/PRD/PRD-Routing.md))
+Receives a webhook and automatically delivers it to the correct outbound destination using your configured routes and captured payload. (Relates to [Routing](./docs/PRD/PRD-Routing.md))
 
 ### Auto-Route Immediate Delivery
 ```php
