@@ -16,16 +16,16 @@ return new class extends Migration
 
         $this->schema()->create($tableName, function (Blueprint $table): void {
             $table->bigIncrements('id');
-            $table->string('source_ip', 15)->nullable();
-            $table->string('provider', 64)->nullable();
-            $table->string('reference_id', 191)->nullable();
-            $table->json('headers')->nullable();
-            $table->json('payload')->nullable();
-            $table->unsignedTinyInteger('status')->default(RelayStatus::QUEUED->value);
             $table->string('mode', 32)->nullable();
             $table->unsignedBigInteger('route_id')->nullable();
+            $table->string('reference_id', 191)->nullable();
+            $table->unsignedTinyInteger('status')->default(RelayStatus::QUEUED->value);
+            $table->string('source_ip', 15)->nullable();
+            $table->string('provider', 64)->nullable();
+            $table->json('headers')->nullable();
             $table->string('method', 16)->nullable();
             $table->string('url')->nullable();
+            $table->json('payload')->nullable();
             $table->unsignedSmallInteger('response_http_status')->nullable();
             $table->json('response_payload')->nullable();
             $table->unsignedSmallInteger('failure_reason')->nullable();
