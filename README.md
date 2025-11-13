@@ -71,40 +71,28 @@ protected function schedule(Schedule $schedule): void
 
 ---
 
-## 🧩 Fluent API Examples
+## 🧩 Example Usage
 
-Atlas Relay exposes a fluent, chainable API that powers both **inbound and outbound webhook flows**.
+### Receive a Webhook
 
-### Capture a Webhook and Process an Event
-
-Captures an inbound webhook, stores it, executes a handler, and marks the relay complete. (See [Payload Capture](./docs/PRD/PRD-Payload-Capture.md))
 ```php
-// The fun way
+// The most common way
 Relay::request($request)->event(fn($payload) => $this->handleEvent($payload));
 
-// OR this way
-Relay::request($request)
-    ->event(function($payload) {
-        // process my event
-        $this->handleEvent($payload)
-    });
-
-// OR if you prefer to dispatch for async processing
+// OR you can dispatch for async processing
 Relay::request($request)->dispatchEvent(fn($payload) => $this->handleEvent($payload));
 
 // OR you can dispatch a job and access payload through the relay object
 Relay::request($request)->dispatch(new ExampleJob);
 ```
 
-`Relay::request($request)` automatically grabs the inbound payload (JSON or form data), so your event callbacks immediately receive the decoded payload without an extra `payload()` call.
+`Relay::request($request)` automatically grabs the inbound payload (JSON or form data), so your event callbacks immediately receive the decoded payload. (See [Payload Capture](./docs/PRD/PRD-Payload-Capture.md)).
 
 ---
 
-### Direct Outbound Webhook
+### Send a Webhook
 ```php
-Relay::payload($payload)
-    ->http()
-    ->post('https://api.example.com/webhooks');
+Relay::payload($payload)->http()->post('https://api.example.com/webhooks');
 ```
 Sends an outbound webhook directly without route lookup. The `RelayHttpClient` wrapper still honors the usual chainable `PendingRequest` methods before executing verbs.
 (Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
