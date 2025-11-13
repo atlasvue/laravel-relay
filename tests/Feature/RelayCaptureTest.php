@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
  */
 class RelayCaptureTest extends TestCase
 {
-    public function test_capture_persists_normalized_headers_and_lifecycle_overrides(): void
+    public function test_capture_persists_normalized_headers(): void
     {
         $request = Request::create('/relay', 'POST', ['hello' => 'world']);
         $request->headers->set('Authorization', 'Bearer secret');
@@ -27,10 +27,6 @@ class RelayCaptureTest extends TestCase
         $relay = Relay::request($request)
             ->payload(['status' => 'queued'])
             ->mode('event')
-            ->retry(120, 5)
-            ->delay(10)
-            ->timeout(45)
-            ->httpTimeout(30)
             ->capture();
 
         $this->assertInstanceOf(RelayModel::class, $relay);
@@ -41,13 +37,6 @@ class RelayCaptureTest extends TestCase
         $headers = $relay->headers ?? [];
         $this->assertSame('***', $headers['authorization'] ?? null);
         $this->assertSame('Value', $headers['x-custom'] ?? null);
-        $this->assertTrue($relay->is_retry);
-        $this->assertSame(120, $relay->retry_seconds);
-        $this->assertSame(5, $relay->retry_max_attempts);
-        $this->assertTrue($relay->is_delay);
-        $this->assertSame(10, $relay->delay_seconds);
-        $this->assertSame(45, $relay->timeout_seconds);
-        $this->assertSame(30, $relay->http_timeout_seconds);
     }
 
     public function test_whitelisted_headers_are_not_masked(): void

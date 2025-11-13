@@ -62,12 +62,9 @@ Triggered by `.dispatchAutoRoute()` or `.autoRouteImmediately()`.
 ### Steps
 1. Find route (cached, 20‑minute TTL).
 2. When matched:
-    - Copy route defaults into the new relay record:
-        - Retry fields (`is_retry`, `retry_seconds`, `retry_max_attempts`)
-        - Delay fields (`is_delay`, `delay_seconds`)
-        - Timeout fields (`timeout_seconds`, `http_timeout_seconds`)
-    - API-specified overrides take precedence.
-    - Changes to route config do not affect existing relays.
+    - Persist the relay with the resolved `route_id`, normalized URL, and headers.
+    - Retry/delay/timeout fields remain on the route; automation resolves them as needed.
+    - Manual overrides are no longer copied to the relay—route config is the single source of truth.
 3. Forward matched route to Outbound Delivery subsystem.
 4. If no match → relay fails with `NO_ROUTE_MATCH`.
 
@@ -114,7 +111,7 @@ Programmatic providers allow tenant-specific logic, advanced rules, or integrati
 ---
 
 ## Observability
-All routing decisions and results are reflected via inline relay fields in `atlas_relays` (status, failure_reason, retries, durations, response info).
+All routing decisions and results are reflected via inline relay fields in `atlas_relays` (status, failure_reason, attempts, durations, response info). Retry/delay/timeout metadata is stored on the route itself and read via `route_id`.
 
 ---
 
@@ -127,7 +124,7 @@ Captured → Queued → Processing → Completed/Failed/Cancelled → Archived
 - Manual domain registration removed; routing is global.
 - AutoRouting is the default path for inbound relays.
 - Cache must respect route enabled/disabled state.
-- Matching must remain deterministic on retries.
+- Matching must remain deterministic on retries; updated config should be picked up automatically because it is read from the route each time.
 
 ---
 

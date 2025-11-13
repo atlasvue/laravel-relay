@@ -88,15 +88,16 @@ Relay::request($request)
 ## 4) Combine AutoRoute + Dispatch
 
 ```php
-// If your route resolves to a dispatch-type destination, Atlas copies route defaults
-// (retry/delay/timeout) to the relay at capture. Your job code stays 100% Laravel.
+// If your route resolves to a dispatch-type destination, Atlas logs the relay and
+// stores the associated route ID. Automation reads the route config (retry/delay/
+// timeout) whenever it needs to enforce a policy. Your job code stays 100% Laravel.
 
 Relay::request($request)
     ->dispatchAutoRoute();   // router selects a dispatch destination per PRD-Routing
 ```
 
 **Behavior**
-- Route defaults (`is_retry`, `retry_seconds`, `retry_max_attempts`, `is_delay`, `delay_seconds`, `timeout_seconds`, `http_timeout_seconds`) copied onto the relay at creation.
+- Route defaults live on `atlas_relay_routes`; relays capture the `route_id`, and automation consults the latest route config when enforcing retries/delays/timeouts.
 - `Relay::request()` already captured the inbound payload, so dispatch routes receive the webhook body without an extra `payload()` call.
 - Your job is still dispatched using **Laravel native** dispatch — Atlas wraps to **record lifecycle**.
 
@@ -115,7 +116,7 @@ Relay::http()
 **Behavior**
 - Delegates to Laravel’s `Http` under the hood; **all client features** available.
 - Atlas intercepts first, records payload/method/URL plus `response_http_status`/`response_payload`, then returns the response.
-- Need lifecycle overrides before HTTP? Start from `Relay::request($request)` (or, if there is no HTTP request, `Relay::payload($data)`), configure it, and then call `->http()` as before.
+- Lifecycle tuning (retry/delay/timeout) is managed via AutoRoute definitions rather than the builder.
 
 ---
 

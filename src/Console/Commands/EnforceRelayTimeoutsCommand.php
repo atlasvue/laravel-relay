@@ -34,10 +34,19 @@ class EnforceRelayTimeoutsCommand extends Command
         Relay::query()
             ->where('status', RelayStatus::PROCESSING->value)
             ->whereNotNull('processing_at')
+            ->with([
+                'route:id,timeout_seconds,http_timeout_seconds',
+            ])
             ->orderBy('id')
             ->chunkById($chunkSize, function ($relays) use (&$count, $lifecycle, $bufferSeconds): void {
                 foreach ($relays as $relay) {
-                    $timeout = $relay->timeout_seconds ?? $relay->http_timeout_seconds;
+                    $route = $relay->route;
+
+                    if ($route === null) {
+                        continue;
+                    }
+
+                    $timeout = $route->timeout_seconds ?? $route->http_timeout_seconds;
 
                     if ($timeout === null || $timeout <= 0) {
                         continue;

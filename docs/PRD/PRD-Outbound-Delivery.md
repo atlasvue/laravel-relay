@@ -65,7 +65,7 @@ Outbound Delivery wraps Laravel’s built‑in `Http` and job dispatching:
 
 ## Retry, Delay & Timeout
 
-Execution is controlled by relay-level fields:
+Execution is controlled by the associated AutoRoute definition:
 
 - Retries: `is_retry`, `retry_seconds`, `retry_max_attempts`
 - Delays: `is_delay`, `delay_seconds`
@@ -76,6 +76,7 @@ Rules:
 - Retries scheduled with `next_retry_at`.
 - Timeouts apply to total execution time.
 - Previous failure details cleared on retry.
+- Manual relays without a `route_id` skip these automation concepts.
 
 ---
 
@@ -109,7 +110,7 @@ Rules:
 ---
 
 ## Observability
-All outbound attempts, responses, retries, timings, and failures are recorded directly in the `atlas_relays` table.
+All outbound attempts, responses, retries, timings, and failures are recorded directly in the `atlas_relays` table. Configuration for retries/delays/timeouts is resolved dynamically from the `atlas_relay_routes` entry referenced by each relay.
 
 ---
 

@@ -32,9 +32,6 @@ class RelayBuilder
 
     private ?string $mode = null;
 
-    /** @var array<string, mixed> */
-    private array $lifecycleOverrides = [];
-
     /** @var array<string, array<int, string>> */
     private array $validationErrors = [];
 
@@ -99,57 +96,6 @@ class RelayBuilder
         return $this;
     }
 
-    public function retry(?int $seconds = null, ?int $maxAttempts = null): self
-    {
-        $this->lifecycleOverrides['is_retry'] = true;
-
-        if ($seconds !== null) {
-            $this->lifecycleOverrides['retry_seconds'] = $seconds;
-        }
-
-        if ($maxAttempts !== null) {
-            $this->lifecycleOverrides['retry_max_attempts'] = $maxAttempts;
-        }
-
-        return $this;
-    }
-
-    public function disableRetry(): self
-    {
-        $this->lifecycleOverrides['is_retry'] = false;
-
-        return $this;
-    }
-
-    public function delay(?int $seconds): self
-    {
-        $this->lifecycleOverrides['is_delay'] = $seconds !== null && $seconds > 0;
-        $this->lifecycleOverrides['delay_seconds'] = $seconds;
-
-        return $this;
-    }
-
-    public function timeout(?int $seconds): self
-    {
-        $this->lifecycleOverrides['timeout_seconds'] = $seconds;
-
-        return $this;
-    }
-
-    public function httpTimeout(?int $seconds): self
-    {
-        $this->lifecycleOverrides['http_timeout_seconds'] = $seconds;
-
-        return $this;
-    }
-
-    public function maxAttempts(?int $maxAttempts): self
-    {
-        $this->lifecycleOverrides['retry_max_attempts'] = $maxAttempts;
-
-        return $this;
-    }
-
     public function validationError(string $field, string $message): self
     {
         $this->validationErrors[$field][] = $message;
@@ -202,7 +148,6 @@ class RelayBuilder
             $this->request,
             $this->payload,
             $this->mode,
-            $this->lifecycleOverrides,
             $this->failureReason,
             $this->status,
             $this->validationErrors,
@@ -311,26 +256,7 @@ class RelayBuilder
         $this->resolvedMethod = $route->method;
         $this->resolvedUrl = $route->url;
 
-        $this->mergeLifecycleDefaults($route->lifecycle);
         $this->mergeHeaders($route->headers, false);
-    }
-
-    /**
-     * @param  array<string, mixed>  $defaults
-     */
-    private function mergeLifecycleDefaults(array $defaults): void
-    {
-        foreach ($defaults as $key => $value) {
-            if ($value === null) {
-                continue;
-            }
-
-            if (array_key_exists($key, $this->lifecycleOverrides)) {
-                continue;
-            }
-
-            $this->lifecycleOverrides[$key] = $value;
-        }
     }
 
     private function buildRouteContext(): RoutingContext

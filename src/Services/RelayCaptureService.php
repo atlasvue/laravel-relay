@@ -12,7 +12,6 @@ use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Support\RelayContext;
 use Atlas\Relay\Support\RequestPayloadExtractor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -84,8 +83,7 @@ class RelayCaptureService
 
         $method = $this->determineMethod($context);
 
-        $attributes = array_merge($this->defaultLifecycleConfig(), $context->lifecycle);
-        $attributes = array_merge($attributes, [
+        $attributes = [
             'source_ip' => $this->determineSourceIp($request),
             'provider' => $context->provider,
             'reference_id' => $context->referenceId,
@@ -95,11 +93,14 @@ class RelayCaptureService
             'mode' => $context->mode,
             'failure_reason' => $failureReason?->value,
             'response_payload' => null,
-            'attempt_count' => Arr::get($context->lifecycle, 'attempt_count', 0),
+            'attempt_count' => 0,
             'route_id' => $context->routeId,
             'method' => $method?->value,
             'url' => $url,
-        ]);
+            'next_retry_at' => null,
+            'processing_at' => null,
+            'completed_at' => null,
+        ];
 
         if ($validationErrors !== []) {
             $this->reportValidationErrors($validationErrors, $attributes);
@@ -164,26 +165,6 @@ class RelayCaptureService
         }
 
         return $normalized;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function defaultLifecycleConfig(): array
-    {
-        return [
-            'is_retry' => false,
-            'retry_seconds' => config('atlas-relay.lifecycle.default_retry_seconds'),
-            'retry_max_attempts' => config('atlas-relay.lifecycle.default_retry_max_attempts'),
-            'attempt_count' => 0,
-            'is_delay' => false,
-            'delay_seconds' => config('atlas-relay.lifecycle.default_delay_seconds'),
-            'timeout_seconds' => config('atlas-relay.lifecycle.default_timeout_seconds'),
-            'http_timeout_seconds' => config('atlas-relay.lifecycle.default_http_timeout_seconds'),
-            'next_retry_at' => null,
-            'processing_at' => null,
-            'completed_at' => null,
-        ];
     }
 
     private function determineSourceIp(?Request $request): ?string

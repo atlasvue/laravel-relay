@@ -14,7 +14,6 @@ use Illuminate\Http\Request;
 class RelayContext
 {
     /**
-     * @param  array<string, mixed>  $lifecycle
      * @param  array<string, array<int, string>>  $validationErrors
      * @param  array<string, string>  $headers
      */
@@ -22,7 +21,6 @@ class RelayContext
         public readonly ?Request $request,
         public readonly mixed $payload,
         public readonly ?string $mode = null,
-        public readonly array $lifecycle = [],
         public readonly ?RelayFailure $failureReason = null,
         public readonly RelayStatus $status = RelayStatus::QUEUED,
         public readonly array $validationErrors = [],

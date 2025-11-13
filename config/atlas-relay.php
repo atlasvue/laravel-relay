@@ -33,11 +33,6 @@ return [
     ],
 
     'lifecycle' => [
-        'default_retry_seconds' => env('ATLAS_RELAY_DEFAULT_RETRY_SECONDS', 60),
-        'default_retry_max_attempts' => env('ATLAS_RELAY_DEFAULT_RETRY_MAX_ATTEMPTS', 3),
-        'default_delay_seconds' => env('ATLAS_RELAY_DEFAULT_DELAY_SECONDS', 0),
-        'default_timeout_seconds' => env('ATLAS_RELAY_DEFAULT_TIMEOUT_SECONDS', 30),
-        'default_http_timeout_seconds' => env('ATLAS_RELAY_DEFAULT_HTTP_TIMEOUT_SECONDS', 30),
         'exception_response_max_bytes' => env('ATLAS_RELAY_EXCEPTION_RESPONSE_MAX_BYTES', 1024),
     ],
 

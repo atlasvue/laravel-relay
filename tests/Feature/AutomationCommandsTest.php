@@ -7,6 +7,7 @@ namespace Atlas\Relay\Tests\Feature;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Models\RelayArchive;
+use Atlas\Relay\Models\RelayRoute;
 use Atlas\Relay\Tests\TestCase;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,6 @@ class AutomationCommandsTest extends TestCase
             'payload' => [],
             'status' => RelayStatus::FAILED,
             'mode' => 'auto_route',
-            'is_retry' => true,
             'next_retry_at' => Carbon::now()->subMinute(),
         ]);
 
@@ -75,13 +75,23 @@ class AutomationCommandsTest extends TestCase
 
     public function test_enforce_timeouts_marks_relays_failed(): void
     {
+        $route = RelayRoute::query()->create([
+            'identifier' => 'timeout',
+            'method' => 'POST',
+            'path' => '/timeouts',
+            'type' => 'http',
+            'url' => 'https://example.com/timeout',
+            'timeout_seconds' => 60,
+            'enabled' => true,
+        ]);
+
         $relay = Relay::query()->create([
             'source_ip' => '127.0.0.1',
             'headers' => [],
             'payload' => [],
             'status' => RelayStatus::PROCESSING,
             'mode' => 'http',
-            'timeout_seconds' => 60,
+            'route_id' => $route->id,
             'processing_at' => Carbon::now()->subMinutes(5),
         ]);
 

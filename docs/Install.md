@@ -10,7 +10,7 @@ composer require atlas-php/relay
 
 ## 2. Publish the Configuration
 
-Customize table names, lifecycle defaults, retry settings, or database connections via the published config file:
+Customize table names, capture constraints, or database connections via the published config file:
 
 ```bash
 php artisan vendor:publish --tag=atlas-relay-config

@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Builder;
  * @property string $url
  * @property array<string, mixed>|null $headers
  * @property bool $enabled
+ * @property int|null $timeout_seconds
+ * @property int|null $http_timeout_seconds
  */
 class RelayRoute extends AtlasModel
 {

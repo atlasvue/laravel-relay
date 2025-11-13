@@ -29,14 +29,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('response_http_status')->nullable();
             $table->json('response_payload')->nullable();
             $table->unsignedSmallInteger('failure_reason')->nullable();
-            $table->boolean('is_retry')->default(false);
-            $table->unsignedInteger('retry_seconds')->nullable();
-            $table->unsignedInteger('retry_max_attempts')->nullable();
             $table->unsignedSmallInteger('attempt_count')->default(0);
-            $table->boolean('is_delay')->default(false);
-            $table->unsignedInteger('delay_seconds')->nullable();
-            $table->unsignedInteger('timeout_seconds')->nullable();
-            $table->unsignedInteger('http_timeout_seconds')->nullable();
             $table->timestamp('next_retry_at')->nullable();
             $table->timestamp('processing_at')->nullable();
             $table->timestamp('completed_at')->nullable();

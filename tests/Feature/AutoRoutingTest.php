@@ -25,7 +25,7 @@ use Illuminate\Http\Request;
  */
 class AutoRoutingTest extends TestCase
 {
-    public function test_dispatch_auto_route_applies_route_defaults(): void
+    public function test_dispatch_auto_route_applies_route_headers_and_metadata(): void
     {
         $route = $this->createRoute([
             'headers' => ['X-Route' => 'atlas'],
@@ -44,10 +44,8 @@ class AutoRoutingTest extends TestCase
         $this->assertSame($route->id, $relay->route_id);
         $this->assertSame('auto_route', $relay->mode);
         $this->assertSame(HttpMethod::POST, $relay->method);
-        $this->assertTrue($relay->is_retry);
-        $this->assertSame(90, $relay->retry_seconds);
-        $this->assertTrue($relay->is_delay);
-        $this->assertSame(5, $relay->delay_seconds);
+        $headers = $relay->headers ?? [];
+        $this->assertSame('atlas', $headers['x-route'] ?? null);
     }
 
     public function test_dynamic_route_resolution_captures_parameters(): void

@@ -34,13 +34,6 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 | `failure_reason`       | Enum for capture or downstream failure.                 |
 | `response_http_status` | HTTP status of last outbound request.                   |
 | `response_payload`     | Truncated last HTTP response body.                      |
-| `is_retry`             | AutoRoute retry enabled flag.                           |
-| `retry_seconds`        | Delay between retry attempts.                           |
-| `retry_max_attempts`   | Max retries allowed.                                    |
-| `is_delay`             | Initial delay enabled.                                  |
-| `delay_seconds`        | Delay before first execution.                           |
-| `timeout_seconds`      | Max relay execution time.                               |
-| `http_timeout_seconds` | Max outbound HTTP timeout.                              |
 | `next_retry_at`        | Next retry timestamp.                                   |
 | `method`               | HTTP verb captured for inbound/outbound delivery.       |
 | `url`                  | Normalized route or destination URL applied everywhere. |
@@ -76,8 +69,12 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 
 ---
 
+> **AutoRoute lifecycle config**
+>
+> Retry/delay/timeout settings now live exclusively on the `atlas_relay_routes` table. Relays simply reference `route_id`; schedulers and delivery jobs read the latest route definition when enforcement is required. Manual relays (no `route_id`) do not opt into these automation features.
+
 ## Observability
-All lifecycle details—including retries, responses, durations, and failure reasons—are recorded directly on the `atlas_relays` table.
+All lifecycle details—including attempts, responses, durations, and failure reasons—are recorded directly on the `atlas_relays` table. Configuration flags are read from `atlas_relay_routes` when a relay is associated with a route.
 
 ---
 

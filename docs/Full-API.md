@@ -40,16 +40,13 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `request(Request $request)` | Replace/define the inbound request snapshot (also extracts payload when present). |
 | `payload(mixed $payload)` | Provide raw payload data (array/stdClass/scalar) or override what was extracted from the request. |
 | `mode(string $mode)` | Force a specific delivery mode label stored on the relay. |
-| `retry(?int $seconds = null, ?int $maxAttempts = null)` | Enable retry semantics and optionally override cadence / max attempts. |
-| `disableRetry()` | Explicitly disable retries even if routes suggest otherwise. |
-| `delay(?int $seconds)` | Mark relay as delayed and set delay window. |
-| `timeout(?int $seconds)` / `httpTimeout(?int $seconds)` | Override lifecycle or HTTP timeout thresholds. |
-| `maxAttempts(?int $maxAttempts)` | Convenience helper for overriding `retry_max_attempts`. |
 | `validationError(string $field, string $message)` | Append validation feedback for reporting/logging prior to capture. |
 | `failWith(RelayFailure $failure, RelayStatus $status = RelayStatus::FAILED)` | Prefill capture state to failed with a specific failure code. |
 | `status(RelayStatus $status)` | Override the initial status before capture. |
 | `setProvider(?string $provider)` | Associate the relay with a provider slug for downstream analytics/filters. Accepts `null` to clear. |
 | `setReferenceId(?string $referenceId)` | Store a consumer-defined identifier (order ID, case ID, etc.) alongside the relay record. |
+
+> **AutoRoute lifecycle config:** Retries, delays, and timeouts are now configured exclusively on `RelayRoute` definitions. Relays capture the `route_id`, and automation reads the latest route settings when enforcement is required.
 
 > **RelayStatus enum:** Status-related methods accept values from `Enums\RelayStatus`, which is stored as an unsigned tinyint on relay records.
 
@@ -93,18 +90,18 @@ HTTP deliveries merge headers in this order: inbound request snapshot (when usin
 | Method | Behaviour |
 | --- | --- |
 | `startAttempt(Relay $relay)` | Increment attempt counters, mark status `RelayStatus::PROCESSING`, and stamp processing timestamps. |
-| `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and reset retry metadata. |
+| `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and clear `next_retry_at`. |
 | `markFailed(Relay $relay, RelayFailure $failure, array $attributes = [], ?int $durationMs = null)` | Persist failure data, set status `RelayStatus::FAILED`, and store the failure reason. |
 | `recordResponse(Relay $relay, ?int $status, mixed $payload)` | Store outbound response details (`response_http_status` + payload) with truncation rules. |
 | `recordExceptionResponse(Relay $relay, Throwable $exception)` | Persist a shortened exception summary when event or job callbacks crash unexpectedly. |
-| `cancel(Relay $relay, ?RelayFailure $reason = null)` | Set status `RelayStatus::CANCELLED` and clear retry metadata. |
+| `cancel(Relay $relay, ?RelayFailure $reason = null)` | Set status `RelayStatus::CANCELLED` and clear scheduling timestamps. |
 | `replay(Relay $relay)` | Reset lifecycle columns and set status `RelayStatus::QUEUED`, allowing automation to pick the relay back up. |
 
 ### RelayCaptureService
 
 | Method | Description |
 | --- | --- |
-| `capture(RelayContext $context): Relay` | Applies payload size limits, masks headers, merges lifecycle defaults, and persists to the `atlas_relays` table. |
+| `capture(RelayContext $context): Relay` | Applies payload size limits, masks headers, and persists to the `atlas_relays` table. |
 
 ---
 
@@ -171,7 +168,6 @@ Tie these commands into Laravel’s scheduler via `RelayScheduler::register($sch
 | `tables.relays`, `tables.relay_routes`, `tables.relay_archives` | Customize table names. |
 | `capture.max_payload_bytes` (`ATLAS_RELAY_MAX_PAYLOAD_BYTES`) | Max captured payload size (default 64KB). |
 | `capture.sensitive_headers`, `capture.header_whitelist`, `capture.masked_value` | Header masking allow/deny lists. |
-| `lifecycle.default_retry_seconds`, `default_retry_max_attempts`, `default_delay_seconds`, `default_timeout_seconds`, `default_http_timeout_seconds` | Global delivery defaults. |
 | `lifecycle.exception_response_max_bytes` (`ATLAS_RELAY_EXCEPTION_RESPONSE_MAX_BYTES`) | Max bytes stored for exception summaries recorded in `response_payload`. |
 | `routing.cache_ttl_seconds`, `routing.cache_store` | Router cache behaviour. |
 | `http.max_response_bytes`, `http.max_redirects`, `http.enforce_https` | Outbound HTTP safeties. |

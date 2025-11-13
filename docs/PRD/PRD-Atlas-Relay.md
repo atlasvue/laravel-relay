@@ -62,7 +62,7 @@ Relay::http()->post('https://example.com', ['payload' => true]);
 
 ## Relay Tracking Model
 Every relay is represented by a unified record containing the entire transaction.  
-Full schema lives in **Payload Capture PRD** (`atlas_relays` includes all request, response, retry, timeout, and lifecycle fields).
+Full schema lives in **Payload Capture PRD** (`atlas_relays` includes all request, response, and lifecycle fields). Retry/delay/timeout configuration is defined on `atlas_relay_routes` and referenced via `route_id`.
 
 ---
 
@@ -88,16 +88,16 @@ Rules:
 ## Retry, Delay & Timeout Logic
 Applies **only to AutoRoute** deliveries.
 
-Source of configuration (priority):
-1. Relay record fields.
-2. Route defaults (copied at creation).
-3. API overrides.
+Source of configuration:
+- `atlas_relay_routes` stores retry/delay/timeout knobs.
+- Relay records point to the route via `route_id`; automation reads the latest route definition whenever it needs thresholds.
+- Manual relays (no `route_id`) do not participate in these automation features.
 
 Rules:
-- Retries: governed by `is_retry`, `retry_seconds`, `retry_max_attempts`.
+- Retries: governed by the route’s `is_retry`, `retry_seconds`, `retry_max_attempts`.
 - Delays: `is_delay`, `delay_seconds`.
 - Timeouts: `timeout_seconds`, `http_timeout_seconds`.
-- Edits to route config do not affect existing relays.
+- Updating a route immediately affects future enforcement runs because configuration is no longer copied onto the relay.
 
 ---
 
@@ -110,7 +110,7 @@ Rules:
 
 ## Observability
 All lifecycle data is stored inline on `atlas_relays`:  
-status, failure_reason, retries, durations, `response_http_status`, `response_payload`, timing, and configuration fields.
+status, failure_reason, attempts, durations, `response_http_status`, `response_payload`, and scheduling timestamps. Retry/delay/timeout configuration is resolved dynamically from the associated route.
 
 ---
 
@@ -140,7 +140,7 @@ Purging: 11 PM EST
 
 ## Notes
 - HTTP & Dispatch use Laravel‑native APIs; Atlas Relay only intercepts for lifecycle recording.
-- Relay-level config is immutable after creation.
+- Route-level config is the single source of truth for retries/delays/timeouts.
 - All payloads stored regardless of delivery result.
 - Malformed JSON stored as‑is with `INVALID_PAYLOAD`.
 - All operations must be idempotent.
