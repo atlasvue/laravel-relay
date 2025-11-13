@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Tests\Feature;
 
+use Atlas\Relay\Enums\DestinationMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Exceptions\InvalidDestinationUrlException;
@@ -24,7 +25,7 @@ use Illuminate\Http\Request;
  */
 class AutoRoutingTest extends TestCase
 {
-    public function test_dispatch_auto_route_applies_route_defaults_and_headers(): void
+    public function test_dispatch_auto_route_applies_route_defaults(): void
     {
         $route = $this->createRoute([
             'headers' => ['X-Route' => 'atlas'],
@@ -42,13 +43,11 @@ class AutoRoutingTest extends TestCase
 
         $this->assertSame($route->id, $relay->route_id);
         $this->assertSame('auto_route', $relay->mode);
-        $this->assertSame('http', $relay->destination_type);
+        $this->assertSame(DestinationMethod::POST, $relay->destination_method);
         $this->assertTrue($relay->is_retry);
         $this->assertSame(90, $relay->retry_seconds);
         $this->assertTrue($relay->is_delay);
         $this->assertSame(5, $relay->delay_seconds);
-        $meta = $relay->meta ?? [];
-        $this->assertSame(['X-Route' => 'atlas'], $meta['route_headers'] ?? null);
     }
 
     public function test_dynamic_route_resolution_captures_parameters(): void
@@ -64,8 +63,6 @@ class AutoRoutingTest extends TestCase
                 ->relay()
         );
 
-        $meta = $relay->meta ?? [];
-        $this->assertSame('42', $meta['route_parameters']['LEAD_ID'] ?? null);
     }
 
     public function test_dynamic_routes_are_resolved_before_static_matches(): void
@@ -91,8 +88,6 @@ class AutoRoutingTest extends TestCase
         $this->assertSame($dynamic->id, $relay->route_id);
         $this->assertSame('https://example.com/wildcard', $relay->destination_url);
 
-        $meta = $relay->meta ?? [];
-        $this->assertSame('orders', $meta['route_parameters']['slug'] ?? null);
     }
 
     public function test_programmatic_provider_precedence_and_caching_controls(): void
@@ -147,6 +142,47 @@ class AutoRoutingTest extends TestCase
         $this->assertSame('https://provider.test/two', $refreshedRelay->destination_url);
     }
 
+    public function test_invalid_destination_method_is_reported(): void
+    {
+        /** @var Router $router */
+        $router = app(Router::class);
+        $router->registerProvider('invalid-method', new class implements RoutingProviderInterface
+        {
+            public function determine(RouteContext $context): ?RouteResult
+            {
+                if ($context->normalizedPath() === null) {
+                    return null;
+                }
+
+                return new RouteResult(
+                    id: null,
+                    identifier: 'invalid-method',
+                    type: 'http',
+                    destinationUrl: 'https://example.com/invalid',
+                    destinationMethod: 'TRACE'
+                );
+            }
+
+            public function cacheKey(RouteContext $context): ?string
+            {
+                return null;
+            }
+
+            public function cacheTtlSeconds(): ?int
+            {
+                return null;
+            }
+        });
+
+        $relay = $this->assertRelayInstance(
+            Relay::request(Request::create('/invalid', 'POST'))
+                ->dispatchAutoRoute()
+                ->relay()
+        );
+
+        $this->assertNull($relay->destination_method);
+    }
+
     public function test_route_cache_is_invalidated_when_route_changes(): void
     {
         $route = $this->createRoute([
@@ -179,8 +215,6 @@ class AutoRoutingTest extends TestCase
 
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::ROUTE_DISABLED->value, $relay->failure_reason);
-        $meta = $relay->meta ?? [];
-        $this->assertArrayHasKey('route', $meta['validation_errors'] ?? []);
     }
 
     public function test_disabled_dynamic_route_sets_failure_reason(): void
@@ -200,8 +234,6 @@ class AutoRoutingTest extends TestCase
 
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::ROUTE_DISABLED->value, $relay->failure_reason);
-        $meta = $relay->meta ?? [];
-        $this->assertArrayHasKey('route', $meta['validation_errors'] ?? []);
     }
 
     public function test_destination_url_longer_than_supported_limit_throws_exception(): void
@@ -256,8 +288,6 @@ class AutoRoutingTest extends TestCase
         );
 
         $this->assertSame(RelayFailure::ROUTE_RESOLVER_ERROR->value, $relay->failure_reason);
-        $meta = $relay->meta ?? [];
-        $this->assertSame('Resolver boom', $meta['validation_errors']['route'][0] ?? null);
     }
 
     public function test_router_resolver_errors_include_previous_exception(): void

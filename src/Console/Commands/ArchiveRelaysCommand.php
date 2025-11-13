@@ -62,7 +62,7 @@ class ArchiveRelaysCommand extends Command
                             }
                         }
 
-                        $attributes['archived_at'] = $attributes['archived_at'] ?? $timestamp->toDateTimeString();
+                        $attributes['archived_at'] = $timestamp->toDateTimeString();
 
                         return $attributes;
                     })->all();

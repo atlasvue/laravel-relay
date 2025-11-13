@@ -110,7 +110,7 @@ Rules:
 
 ## Observability
 All lifecycle data is stored inline on `atlas_relays`:  
-status, failure_reason, retries, durations, `response_status`, `response_payload`, timing, and configuration fields.
+status, failure_reason, retries, durations, `response_http_status`, `response_payload`, timing, and configuration fields.
 
 ---
 

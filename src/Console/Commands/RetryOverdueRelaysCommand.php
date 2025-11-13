@@ -40,7 +40,6 @@ class RetryOverdueRelaysCommand extends Command
                         'failure_reason' => null,
                         'processing_at' => null,
                         'completed_at' => null,
-                        'last_attempt_duration_ms' => null,
                     ])->save();
 
                     $count++;

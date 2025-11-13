@@ -23,32 +23,29 @@ class MigrationRegistrationTest extends TestCase
         $routesTable = config('atlas-relay.tables.relay_routes');
 
         $expectedLifecycleColumns = [
-            'request_source',
+            'source',
             'headers',
             'payload',
             'status',
             'mode',
             'route_id',
             'route_identifier',
-            'destination_type',
+            'destination_method',
             'destination_url',
             'failure_reason',
-            'response_status',
+            'response_http_status',
             'response_payload',
             'is_retry',
             'retry_seconds',
             'retry_max_attempts',
             'attempt_count',
-            'max_attempts',
             'is_delay',
             'delay_seconds',
             'timeout_seconds',
             'http_timeout_seconds',
-            'last_attempt_duration_ms',
             'next_retry_at',
             'processing_at',
             'completed_at',
-            'meta',
         ];
 
         $this->assertTrue(Schema::hasColumns($relaysTable, $expectedLifecycleColumns));

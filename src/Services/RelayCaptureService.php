@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Services;
 
+use Atlas\Relay\Enums\DestinationMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Events\RelayCaptured;
@@ -71,22 +72,27 @@ class RelayCaptureService
             }
         }
 
+        $destinationMethod = $this->determineDestinationMethod($context);
+
         $attributes = array_merge($this->defaultLifecycleConfig(), $context->lifecycle);
         $attributes = array_merge($attributes, [
-            'request_source' => $this->determineRequestSource($request),
+            'source' => $this->determineSource($request),
             'headers' => $headers,
             'payload' => $payload,
             'status' => $status,
             'mode' => $context->mode,
             'failure_reason' => $failureReason?->value,
-            'meta' => $this->buildMeta($context->meta, $validationErrors, $context->routeHeaders, $context->routeParameters),
             'response_payload' => null,
             'attempt_count' => Arr::get($context->lifecycle, 'attempt_count', 0),
             'route_id' => $context->routeId,
             'route_identifier' => $context->routeIdentifier,
-            'destination_type' => $context->destinationType,
+            'destination_method' => $destinationMethod?->value,
             'destination_url' => $destinationUrl,
         ]);
+
+        if ($validationErrors !== []) {
+            $this->reportValidationErrors($validationErrors, $attributes);
+        }
 
         $relay = $this->relay->newQuery()->create($attributes);
 
@@ -145,21 +151,60 @@ class RelayCaptureService
             'retry_seconds' => config('atlas-relay.lifecycle.default_retry_seconds'),
             'retry_max_attempts' => config('atlas-relay.lifecycle.default_retry_max_attempts'),
             'attempt_count' => 0,
-            'max_attempts' => null,
             'is_delay' => false,
             'delay_seconds' => config('atlas-relay.lifecycle.default_delay_seconds'),
             'timeout_seconds' => config('atlas-relay.lifecycle.default_timeout_seconds'),
             'http_timeout_seconds' => config('atlas-relay.lifecycle.default_http_timeout_seconds'),
-            'last_attempt_duration_ms' => null,
             'next_retry_at' => null,
             'processing_at' => null,
             'completed_at' => null,
         ];
     }
 
-    private function determineRequestSource(?Request $request): ?string
+    private function determineSource(?Request $request): ?string
     {
         return $request?->ip();
+    }
+
+    private function determineDestinationMethod(RelayContext $context): ?DestinationMethod
+    {
+        $candidate = $context->destinationMethod ?? $context->request?->getMethod();
+
+        if ($candidate === null) {
+            return null;
+        }
+
+        $method = DestinationMethod::tryFromMixed($candidate);
+
+        if ($method === null) {
+            $this->reportInvalidDestinationMethod($candidate, $context);
+        }
+
+        return $method;
+    }
+
+    /**
+     * @param  array<string, array<int, string>>  $validationErrors
+     * @param  array<string, mixed>  $attributes
+     */
+    private function reportValidationErrors(array $validationErrors, array $attributes): void
+    {
+        Log::warning('atlas-relay:validation', [
+            'route_id' => $attributes['route_id'] ?? null,
+            'route_identifier' => $attributes['route_identifier'] ?? null,
+            'mode' => $attributes['mode'] ?? null,
+            'errors' => $validationErrors,
+        ]);
+    }
+
+    private function reportInvalidDestinationMethod(string $method, RelayContext $context): void
+    {
+        Log::warning('atlas-relay:destination-method-invalid', [
+            'provided' => $method,
+            'route_id' => $context->routeId,
+            'route_identifier' => $context->routeIdentifier,
+            'allowed' => DestinationMethod::values(),
+        ]);
     }
 
     private function payloadSize(mixed $payload): int
@@ -210,30 +255,6 @@ class RelayCaptureService
         }
 
         return $values !== null ? (string) $values : null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     * @param  array<string, array<int, string>>  $validationErrors
-     * @param  array<string, string>  $routeHeaders
-     * @param  array<string, string>  $routeParameters
-     * @return array<string, mixed>
-     */
-    private function buildMeta(array $meta, array $validationErrors, array $routeHeaders, array $routeParameters): array
-    {
-        if (! empty($validationErrors)) {
-            $meta['validation_errors'] = $validationErrors;
-        }
-
-        if (! empty($routeHeaders)) {
-            $meta['route_headers'] = $routeHeaders;
-        }
-
-        if (! empty($routeParameters)) {
-            $meta['route_parameters'] = $routeParameters;
-        }
-
-        return $meta;
     }
 
     /**

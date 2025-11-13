@@ -41,9 +41,8 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `disableRetry()` | Explicitly disable retries even if routes suggest otherwise. |
 | `delay(?int $seconds)` | Mark relay as delayed and set delay window. |
 | `timeout(?int $seconds)` / `httpTimeout(?int $seconds)` | Override lifecycle or HTTP timeout thresholds. |
-| `maxAttempts(?int $maxAttempts)` | Override the `max_attempts` cap. |
-| `meta(array $meta)` / `mergeMeta(array $meta)` | Replace or merge extra metadata stored with the relay (e.g. tags). |
-| `validationError(string $field, string $message)` | Append validation feedback that is persisted alongside the relay. |
+| `maxAttempts(?int $maxAttempts)` | Convenience helper for overriding `retry_max_attempts`. |
+| `validationError(string $field, string $message)` | Append validation feedback for reporting/logging prior to capture. |
 | `failWith(RelayFailure $failure, RelayStatus $status = RelayStatus::FAILED)` | Prefill capture state to failed with a specific failure code. |
 | `status(RelayStatus $status)` | Override the initial status before capture. |
 
@@ -93,7 +92,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `startAttempt(Relay $relay)` | Increment attempt counters, mark status `RelayStatus::PROCESSING`, dispatch `RelayAttemptStarted`. |
 | `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and fire `RelayCompleted`. |
 | `markFailed(Relay $relay, RelayFailure $failure, array $attributes = [], ?int $durationMs = null)` | Persist failure data, set status `RelayStatus::FAILED`, and fire `RelayFailed`. |
-| `recordResponse(Relay $relay, ?int $status, mixed $payload)` | Store outbound response metadata, applying truncation rules per delivery channel. |
+| `recordResponse(Relay $relay, ?int $status, mixed $payload)` | Store outbound response details (`response_http_status` + payload) with truncation rules. |
 | `recordExceptionResponse(Relay $relay, Throwable $exception)` | Persist a shortened exception summary when event or job callbacks crash unexpectedly. |
 | `cancel(Relay $relay, ?RelayFailure $reason = null)` | Set status `RelayStatus::CANCELLED` and clear retry metadata. |
 | `replay(Relay $relay)` | Reset lifecycle columns and set status `RelayStatus::QUEUED`, allowing automation to pick the relay back up. |
@@ -135,7 +134,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 
 | Model | Purpose | Helpers |
 | --- | --- | --- |
-| `Atlas\Relay\Models\Relay` | Live relay records capturing lifecycle + payload metadata. | `scopeDueForRetry()` (ready retries), `scopeUnarchived()`. Table name configurable via `atlas-relay.tables.relays`. |
+| `Atlas\Relay\Models\Relay` | Live relay records capturing lifecycle + payload state. | `scopeDueForRetry()` (ready retries). Table name configurable via `atlas-relay.tables.relays`. |
 | `Atlas\Relay\Models\RelayRoute` | Persisted routing definitions used by AutoRoute modes. | `scopeEnabled()`. Table configurable via `atlas-relay.tables.relay_routes`. |
 | `Atlas\Relay\Models\RelayArchive` | Long-term storage for completed/failed relays. | `scopeEligibleForPurge(int $retentionDays)`. Table configurable via `atlas-relay.tables.relay_archives`. |
 

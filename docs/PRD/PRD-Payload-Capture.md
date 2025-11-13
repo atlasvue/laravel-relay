@@ -48,13 +48,13 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 | Field                  | Description                                             |
 |------------------------|---------------------------------------------------------|
 | `id`                   | Relay ID.                                               |
-| `request_source`       | Origin (IP/system).                                     |
+| `source`               | Origin (IP/system).                                     |
 | `headers`              | Normalized header JSON.                                 |
 | `payload`              | Stored JSON payload.                                    |
 | `status`               | Enum: Queued, Processing, Completed, Failed, Cancelled. |
 | `mode`                 | event, dispatch, autoroute, direct.                     |
 | `failure_reason`       | Enum for capture or downstream failure.                 |
-| `response_status`      | HTTP status of last outbound request.                   |
+| `response_http_status` | HTTP status of last outbound request.                   |
 | `response_payload`     | Truncated last HTTP response body.                      |
 | `is_retry`             | AutoRoute retry enabled flag.                           |
 | `retry_seconds`        | Delay between retry attempts.                           |
@@ -64,6 +64,7 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 | `timeout_seconds`      | Max relay execution time.                               |
 | `http_timeout_seconds` | Max outbound HTTP timeout.                              |
 | `next_retry_at`        | Next retry timestamp.                                   |
+| `destination_method`   | HTTP verb selected for delivery (`GET`, `POST`, etc.).  |
 | `processing_at`        | When the current attempt began processing.              |
 | `completed_at`         | When the relay finished (success, failure, or cancel).  |
 | `created_at`           | Capture timestamp.                                      |

@@ -128,7 +128,7 @@ Relay::payload($data)
 
 **Behavior**
 - Delegates to Laravel’s `Http` under the hood; **all client features** available.
-- Atlas intercepts first, records `response_status`/`response_payload`, then returns the response.
+- Atlas intercepts first, records `response_http_status`/`response_payload`, then returns the response.
 
 ---
 
@@ -137,4 +137,3 @@ Relay::payload($data)
 - Atlas **dispatch/dispatchSync/dispatchChain** are **thin wrappers** that return the **same Laravel types** you expect and preserve **all Laravel controls**.
 - Atlas **never** forces new base classes or job signatures.
 - Lifecycle and error mapping happen **automatically** (and are written to the relay record and logs).
-

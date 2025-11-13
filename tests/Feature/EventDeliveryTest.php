@@ -45,7 +45,7 @@ class EventDeliveryTest extends TestCase
         $relay = $this->assertRelayInstance($builder->relay());
 
         $this->assertSame(['value' => 'ok'], $relay->response_payload);
-        $this->assertNull($relay->response_status);
+        $this->assertNull($relay->response_http_status);
     }
 
     public function test_event_failure_sets_failure_reason(): void
@@ -184,7 +184,7 @@ class EventDeliveryTest extends TestCase
         $relay->refresh();
 
         $this->assertSame(['value' => 'queued-ok'], $relay->response_payload);
-        $this->assertNull($relay->response_status);
+        $this->assertNull($relay->response_http_status);
     }
 
     public function test_dispatch_event_marks_failure_after_job_exception(): void

@@ -21,6 +21,7 @@ class RouteResult
         public readonly ?string $identifier,
         public readonly string $type,
         public readonly string $destinationUrl,
+        public readonly ?string $destinationMethod = null,
         public readonly array $headers = [],
         public readonly array $lifecycle = [],
         public readonly array $parameters = []
@@ -36,6 +37,7 @@ class RouteResult
             identifier: $route->getAttribute('identifier'),
             type: $route->getAttribute('type'),
             destinationUrl: $route->getAttribute('destination_url'),
+            destinationMethod: $route->getAttribute('method'),
             headers: $route->getAttribute('headers') ?? [],
             lifecycle: [
                 'is_retry' => (bool) $route->getAttribute('is_retry'),
@@ -60,6 +62,7 @@ class RouteResult
             'identifier' => $this->identifier,
             'type' => $this->type,
             'destination_url' => $this->destinationUrl,
+            'destination_method' => $this->destinationMethod,
             'headers' => $this->headers,
             'lifecycle' => $this->lifecycle,
             'parameters' => $this->parameters,
@@ -76,6 +79,7 @@ class RouteResult
             identifier: $data['identifier'] ?? null,
             type: $data['type'],
             destinationUrl: $data['destination_url'],
+            destinationMethod: $data['destination_method'] ?? null,
             headers: $data['headers'] ?? [],
             lifecycle: $data['lifecycle'] ?? [],
             parameters: $data['parameters'] ?? []

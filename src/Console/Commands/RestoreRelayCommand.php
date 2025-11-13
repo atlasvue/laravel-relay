@@ -43,7 +43,6 @@ class RestoreRelayCommand extends Command
         $attributes['next_retry_at'] = null;
         $attributes['processing_at'] = null;
         $attributes['completed_at'] = null;
-        $attributes['last_attempt_duration_ms'] = null;
         $attributes['attempt_count'] = 0;
         $attributes['created_at'] = Carbon::now();
         $attributes['updated_at'] = Carbon::now();

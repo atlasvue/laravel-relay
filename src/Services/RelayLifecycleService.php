@@ -46,7 +46,6 @@ class RelayLifecycleService
             'status' => RelayStatus::COMPLETED,
             'failure_reason' => null,
             'completed_at' => $now,
-            'last_attempt_duration_ms' => $durationMs,
             'next_retry_at' => null,
         ], $attributes))->save();
 
@@ -70,7 +69,6 @@ class RelayLifecycleService
             'status' => RelayStatus::FAILED,
             'failure_reason' => $failure->value,
             'completed_at' => $now,
-            'last_attempt_duration_ms' => $durationMs,
             'next_retry_at' => null,
         ], $attributes))->save();
 
@@ -82,7 +80,7 @@ class RelayLifecycleService
     public function recordResponse(Relay $relay, ?int $status, mixed $payload): Relay
     {
         $relay->forceFill([
-            'response_status' => $status,
+            'response_http_status' => $status,
             'response_payload' => $payload,
         ])->save();
 

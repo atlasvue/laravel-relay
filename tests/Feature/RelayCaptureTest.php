@@ -12,7 +12,7 @@ use Atlas\Relay\Tests\TestCase;
 use Illuminate\Http\Request;
 
 /**
- * Exercises payload capture flows covering header normalization, lifecycle overrides, payload limits, and validation error persistence.
+ * Exercises payload capture flows covering header normalization, lifecycle overrides, payload limits, and validation failure handling.
  *
  * Defined by PRD: Payload Capture — Header Normalization, Payload Handling, Failure Reason Enum, and Edge Cases.
  */
@@ -31,13 +31,12 @@ class RelayCaptureTest extends TestCase
             ->delay(10)
             ->timeout(45)
             ->httpTimeout(30)
-            ->meta(['source' => 'test'])
             ->capture();
 
         $this->assertInstanceOf(RelayModel::class, $relay);
         $this->assertSame(RelayStatus::QUEUED, $relay->status);
         $this->assertSame('event', $relay->mode);
-        $this->assertSame('127.0.0.1', $relay->request_source);
+        $this->assertSame('127.0.0.1', $relay->source);
         $this->assertSame(['status' => 'queued'], $relay->payload);
         $headers = $relay->headers ?? [];
         $this->assertSame('***', $headers['authorization'] ?? null);
@@ -49,8 +48,6 @@ class RelayCaptureTest extends TestCase
         $this->assertSame(10, $relay->delay_seconds);
         $this->assertSame(45, $relay->timeout_seconds);
         $this->assertSame(30, $relay->http_timeout_seconds);
-        $meta = $relay->meta ?? [];
-        $this->assertSame('test', $meta['source'] ?? null);
     }
 
     public function test_whitelisted_headers_are_not_masked(): void
@@ -82,15 +79,9 @@ class RelayCaptureTest extends TestCase
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::PAYLOAD_TOO_LARGE->value, $relay->failure_reason);
         $this->assertNull($relay->payload);
-        $meta = $relay->meta ?? [];
-        $this->assertArrayHasKey('validation_errors', $meta);
-        $this->assertSame(
-            'Payload exceeds configured limit of 65536 bytes.',
-            $meta['validation_errors']['payload'][0] ?? null
-        );
     }
 
-    public function test_validation_errors_are_persisted_with_failure_reason(): void
+    public function test_validation_errors_mark_failure_reason(): void
     {
         $relay = Relay::payload(['foo' => 'bar'])
             ->validationError('payload', 'Invalid structure.')
@@ -99,8 +90,6 @@ class RelayCaptureTest extends TestCase
 
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::INVALID_PAYLOAD->value, $relay->failure_reason);
-        $meta = $relay->meta ?? [];
-        $this->assertSame('Invalid structure.', $meta['validation_errors']['payload'][0] ?? null);
     }
 
     public function test_malformed_json_payload_marks_capture_failed(): void
@@ -113,11 +102,5 @@ class RelayCaptureTest extends TestCase
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::INVALID_PAYLOAD->value, $relay->failure_reason);
         $this->assertSame('{"foo": "bar"', $relay->payload);
-        $meta = $relay->meta ?? [];
-        $this->assertArrayHasKey('validation_errors', $meta);
-        $this->assertStringContainsString(
-            'Invalid JSON payload',
-            $meta['validation_errors']['payload'][0] ?? ''
-        );
     }
 }

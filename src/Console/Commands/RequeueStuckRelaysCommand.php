@@ -45,7 +45,6 @@ class RequeueStuckRelaysCommand extends Command
                     $relay->forceFill([
                         'status' => RelayStatus::QUEUED,
                         'processing_at' => null,
-                        'last_attempt_duration_ms' => null,
                         'completed_at' => null,
                         'next_retry_at' => now(),
                     ])->save();

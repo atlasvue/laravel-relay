@@ -47,7 +47,7 @@ Outbound Delivery wraps Laravel’s built‑in `Http` and job dispatching:
 - Merges relay/route/domain headers.
 - HTTPS required; redirects limited to 3; host changes blocked.
 - Relay records:
-    - `response_status`
+    - `response_http_status`
     - `response_payload` (truncated)
 - Exceptions map to `RelayFailure` and set status `Failed`.
 

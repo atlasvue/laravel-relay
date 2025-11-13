@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Models;
 
+use Atlas\Relay\Enums\DestinationMethod;
 use Atlas\Relay\Enums\RelayStatus;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -19,19 +20,17 @@ class RelayArchive extends AtlasModel
         'headers' => 'array',
         'payload' => 'array',
         'response_payload' => 'array',
-        'meta' => 'array',
         'status' => RelayStatus::class,
+        'destination_method' => DestinationMethod::class,
         'is_retry' => 'boolean',
         'is_delay' => 'boolean',
         'retry_seconds' => 'integer',
         'retry_max_attempts' => 'integer',
         'attempt_count' => 'integer',
-        'max_attempts' => 'integer',
         'delay_seconds' => 'integer',
         'timeout_seconds' => 'integer',
         'http_timeout_seconds' => 'integer',
-        'last_attempt_duration_ms' => 'integer',
-        'response_status' => 'integer',
+        'response_http_status' => 'integer',
         'failure_reason' => 'integer',
         'route_id' => 'integer',
         'next_retry_at' => 'immutable_datetime',

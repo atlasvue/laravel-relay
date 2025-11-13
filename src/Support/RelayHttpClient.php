@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Support;
 
+use Atlas\Relay\Enums\DestinationMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Exceptions\RelayHttpException;
 use Atlas\Relay\Models\Relay;
@@ -13,6 +14,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -71,11 +73,21 @@ class RelayHttpClient
     private function send(string $method, ...$arguments): Response
     {
         $url = $arguments[0] ?? null;
+        $destinationMethod = DestinationMethod::tryFromMixed($method);
 
         try {
             if (! is_string($url)) {
                 throw new RelayHttpException(
                     'HTTP relay calls require a target URL.',
+                    RelayFailure::OUTBOUND_HTTP_ERROR
+                );
+            }
+
+            if ($destinationMethod === null) {
+                $this->reportInvalidMethod($method);
+
+                throw new RelayHttpException(
+                    sprintf('Unsupported HTTP method [%s] for relay delivery.', $method),
                     RelayFailure::OUTBOUND_HTTP_ERROR
                 );
             }
@@ -90,9 +102,11 @@ class RelayHttpClient
             throw $exception;
         }
 
-        $this->pendingRequest = $this->pendingRequest->withHeaders(
-            $this->relay->meta['route_headers'] ?? []
-        );
+        if ($this->relay->destination_method?->value !== $destinationMethod->value) {
+            $this->relay->forceFill([
+                'destination_method' => $destinationMethod,
+            ])->save();
+        }
 
         $relay = $this->lifecycle->startAttempt($this->relay);
         $startedAt = microtime(true);
@@ -199,6 +213,15 @@ class RelayHttpClient
         return Str::contains(strtolower($exception->getMessage()), 'timed out')
             ? RelayFailure::CONNECTION_TIMEOUT
             : RelayFailure::CONNECTION_ERROR;
+    }
+
+    private function reportInvalidMethod(string $method): void
+    {
+        Log::warning('atlas-relay:http-method-invalid', [
+            'relay_id' => $this->relay->id,
+            'method' => $method,
+            'allowed' => DestinationMethod::values(),
+        ]);
     }
 
     private function truncatePayload(?string $payload): ?string

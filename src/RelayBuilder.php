@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay;
 
+use Atlas\Relay\Enums\DestinationMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Models\Relay;
@@ -33,9 +34,6 @@ class RelayBuilder
     /** @var array<string, mixed> */
     private array $lifecycleOverrides = [];
 
-    /** @var array<string, mixed> */
-    private array $meta = [];
-
     /** @var array<string, array<int, string>> */
     private array $validationErrors = [];
 
@@ -47,11 +45,7 @@ class RelayBuilder
 
     private ?RouteResult $routeResult = null;
 
-    /** @var array<string, string> */
-    private array $routeHeaders = [];
-
-    /** @var array<string, string> */
-    private array $routeParameters = [];
+    private ?string $destinationMethod = null;
 
     public function __construct(
         private readonly RelayCaptureService $captureService,
@@ -131,27 +125,7 @@ class RelayBuilder
 
     public function maxAttempts(?int $maxAttempts): self
     {
-        $this->lifecycleOverrides['max_attempts'] = $maxAttempts;
-
-        return $this;
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     */
-    public function meta(array $meta): self
-    {
-        $this->meta = $meta;
-
-        return $this;
-    }
-
-    /**
-     * @param  array<string, mixed>  $meta
-     */
-    public function mergeMeta(array $meta): self
-    {
-        $this->meta = array_replace_recursive($this->meta, $meta);
+        $this->lifecycleOverrides['retry_max_attempts'] = $maxAttempts;
 
         return $this;
     }
@@ -199,21 +173,21 @@ class RelayBuilder
      */
     public function context(): RelayContext
     {
+        $capturedMethod = $this->destinationMethod
+            ?? DestinationMethod::tryFromMixed($this->request?->getMethod())?->value;
+
         return new RelayContext(
             $this->request,
             $this->payload,
             $this->mode,
             $this->lifecycleOverrides,
-            $this->meta,
             $this->failureReason,
             $this->status,
             $this->validationErrors,
             $this->routeResult?->id,
             $this->routeResult?->identifier,
-            $this->routeResult?->type,
-            $this->routeResult?->destinationUrl,
-            $this->routeHeaders,
-            $this->routeParameters
+            $capturedMethod,
+            $this->routeResult?->destinationUrl
         );
     }
 
@@ -280,6 +254,8 @@ class RelayBuilder
 
     private function handleAutoRoute(string $mode): self
     {
+        $this->destinationMethod = null;
+
         try {
             $routeResult = $this->router->resolve($this->buildRouteContext());
             $this->applyRouteResult($routeResult);
@@ -299,8 +275,7 @@ class RelayBuilder
     private function applyRouteResult(RouteResult $route): void
     {
         $this->routeResult = $route;
-        $this->routeHeaders = $route->headers;
-        $this->routeParameters = $route->parameters;
+        $this->destinationMethod = $route->destinationMethod;
 
         $this->mergeLifecycleDefaults($route->lifecycle);
     }

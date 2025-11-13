@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Tests\Feature;
 
+use Atlas\Relay\Enums\DestinationMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Exceptions\RelayHttpException;
@@ -44,7 +45,8 @@ class HttpDeliveryTest extends TestCase
 
         $relay = $this->assertRelayInstance($builder->relay());
         $this->assertSame(RelayStatus::COMPLETED, $relay->status);
-        $this->assertSame(200, $relay->response_status);
+        $this->assertSame(DestinationMethod::POST, $relay->destination_method);
+        $this->assertSame(200, $relay->response_http_status);
         $this->assertSame(['ok' => true], $relay->response_payload);
     }
 
@@ -79,7 +81,7 @@ class HttpDeliveryTest extends TestCase
         $relay = $this->assertRelayInstance($builder->relay());
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::OUTBOUND_HTTP_ERROR->value, $relay->failure_reason);
-        $this->assertNull($relay->response_status);
+        $this->assertNull($relay->response_http_status);
         $this->assertSame('Atlas Relay HTTP deliveries require HTTPS targets.', $relay->response_payload);
     }
 
@@ -102,7 +104,7 @@ class HttpDeliveryTest extends TestCase
         $relay = $this->assertRelayInstance($builder->relay());
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::OUTBOUND_HTTP_ERROR->value, $relay->failure_reason);
-        $this->assertNull($relay->response_status);
+        $this->assertNull($relay->response_http_status);
         $this->assertSame('HTTP relay calls require a target URL.', $relay->response_payload);
     }
 
