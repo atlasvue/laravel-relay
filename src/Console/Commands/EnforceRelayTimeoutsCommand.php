@@ -6,7 +6,6 @@ namespace Atlas\Relay\Console\Commands;
 
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
-use Atlas\Relay\Events\AutomationMetrics;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Services\RelayLifecycleService;
 use Illuminate\Console\Command;
@@ -30,7 +29,6 @@ class EnforceRelayTimeoutsCommand extends Command
         $chunkSize = (int) $this->option('chunk');
         $bufferSeconds = (int) config('atlas-relay.automation.timeout_buffer_seconds', 0);
 
-        $start = microtime(true);
         $count = 0;
 
         Relay::query()
@@ -58,12 +56,6 @@ class EnforceRelayTimeoutsCommand extends Command
                     }
                 }
             });
-
-        $duration = (int) round((microtime(true) - $start) * 1000);
-
-        event(new AutomationMetrics('enforce_timeouts', $count, $duration, [
-            'buffer_seconds' => $bufferSeconds,
-        ]));
 
         $this->info("Timed out {$count} relays.");
 

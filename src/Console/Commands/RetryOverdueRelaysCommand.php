@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace Atlas\Relay\Console\Commands;
 
 use Atlas\Relay\Enums\RelayStatus;
-use Atlas\Relay\Events\AutomationMetrics;
-use Atlas\Relay\Events\RelayRequeued;
 use Atlas\Relay\Models\Relay;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class RetryOverdueRelaysCommand
@@ -26,7 +23,6 @@ class RetryOverdueRelaysCommand extends Command
     public function handle(): int
     {
         $chunkSize = (int) $this->option('chunk');
-        $start = microtime(true);
         $count = 0;
 
         Relay::query()
@@ -43,15 +39,8 @@ class RetryOverdueRelaysCommand extends Command
                     ])->save();
 
                     $count++;
-
-                    event(new RelayRequeued($relay));
-                    Log::info('atlas-relay:retry-overdue', ['relay_id' => $relay->id]);
                 }
             });
-
-        $duration = (int) round((microtime(true) - $start) * 1000);
-
-        event(new AutomationMetrics('retry_overdue', $count, $duration));
 
         $this->info("Retried {$count} relays.");
 

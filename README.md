@@ -223,20 +223,9 @@ See [Atlas Relay PRD](./docs/PRD/PRD-Atlas-Relay.md) for complete job automation
 
 ---
 
-## 🔔 Observability Hooks
+## 🔔 Observability Guidance
 
-Atlas Relay dispatches domain events you can listen to without polling the database:
-
-| Event                            | When it fires                                     |
-|----------------------------------|---------------------------------------------------|
-| `RelayCaptured`                  | Immediately after a relay is persisted.           |
-| `RelayAttemptStarted`            | Whenever an outbound attempt begins.              |
-| `RelayCompleted` / `RelayFailed` | When an attempt finishes successfully or fails.   |
-| `RelayRequeued`                  | When retry/stuck automation re-enqueues a relay.  |
-| `RelayRestored`                  | When a relay is restored from the archive.        |
-| `AutomationMetrics`              | After automation commands run (counts/durations). |
-
-Use Laravel’s standard event listeners or queued listeners to stream these metrics to your own observability stack.
+Atlas Relay no longer emits Laravel domain events for relay lifecycle or automation milestones. Use the persisted `atlas_relays` and archive tables (or wrap the provided automation commands) if you need to push metrics into your own observability stack.
 
 ---
 

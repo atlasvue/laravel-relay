@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Atlas\Relay\Console\Commands;
 
 use Atlas\Relay\Enums\RelayStatus;
-use Atlas\Relay\Events\RelayRestored;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Models\RelayArchive;
 use Illuminate\Console\Command;
@@ -52,8 +51,6 @@ class RestoreRelayCommand extends Command
         if ($this->option('delete')) {
             $archive->delete();
         }
-
-        event(new RelayRestored($relay));
 
         $this->info("Relay {$relay->id} restored from archive.");
 

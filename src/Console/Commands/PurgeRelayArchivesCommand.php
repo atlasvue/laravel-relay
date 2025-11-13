@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Console\Commands;
 
-use Atlas\Relay\Events\AutomationMetrics;
 use Atlas\Relay\Models\RelayArchive;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -26,18 +25,10 @@ class PurgeRelayArchivesCommand extends Command
         $purgeAfterDays = (int) config('atlas-relay.archiving.purge_after_days', 180);
         $cutoff = Carbon::now()->subDays($purgeAfterDays);
 
-        $start = microtime(true);
-
         $count = RelayArchive::query()
             ->whereNotNull('archived_at')
             ->where('archived_at', '<=', $cutoff)
             ->delete();
-
-        $duration = (int) round((microtime(true) - $start) * 1000);
-
-        event(new AutomationMetrics('purge_archives', $count, $duration, [
-            'cutoff' => $cutoff->toDateTimeString(),
-        ]));
 
         $this->info("Purged {$count} archived relays.");
 

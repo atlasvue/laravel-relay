@@ -6,12 +6,8 @@ namespace Atlas\Relay\Services;
 
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
-use Atlas\Relay\Events\RelayAttemptStarted;
-use Atlas\Relay\Events\RelayCompleted;
-use Atlas\Relay\Events\RelayFailed;
 use Atlas\Relay\Models\Relay;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Event;
 use Throwable;
 
 /**
@@ -30,8 +26,6 @@ class RelayLifecycleService
             'completed_at' => null,
         ])->save();
 
-        Event::dispatch(new RelayAttemptStarted($relay));
-
         return $relay;
     }
 
@@ -48,8 +42,6 @@ class RelayLifecycleService
             'completed_at' => $now,
             'next_retry_at' => null,
         ], $attributes))->save();
-
-        Event::dispatch(new RelayCompleted($relay, $durationMs));
 
         return $relay;
     }
@@ -71,8 +63,6 @@ class RelayLifecycleService
             'completed_at' => $now,
             'next_retry_at' => null,
         ], $attributes))->save();
-
-        Event::dispatch(new RelayFailed($relay, $failure, $durationMs));
 
         return $relay;
     }

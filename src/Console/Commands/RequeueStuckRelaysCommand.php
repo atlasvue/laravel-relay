@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace Atlas\Relay\Console\Commands;
 
 use Atlas\Relay\Enums\RelayStatus;
-use Atlas\Relay\Events\AutomationMetrics;
-use Atlas\Relay\Events\RelayRequeued;
 use Atlas\Relay\Models\Relay;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class RequeueStuckRelaysCommand
@@ -30,7 +27,6 @@ class RequeueStuckRelaysCommand extends Command
         $cutoff = Carbon::now()->subMinutes($thresholdMinutes);
         $chunkSize = (int) $this->option('chunk');
 
-        $start = microtime(true);
         $count = 0;
 
         Relay::query()
@@ -50,16 +46,8 @@ class RequeueStuckRelaysCommand extends Command
                     ])->save();
 
                     $count++;
-                    event(new RelayRequeued($relay));
-                    Log::info('atlas-relay:requeue-stuck', ['relay_id' => $relay->id]);
                 }
             });
-
-        $duration = (int) round((microtime(true) - $start) * 1000);
-
-        event(new AutomationMetrics('requeue_stuck', $count, $duration, [
-            'threshold_minutes' => $thresholdMinutes,
-        ]));
 
         $this->info("Requeued {$count} stuck relays.");
 

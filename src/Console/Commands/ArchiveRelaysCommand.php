@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Console\Commands;
 
-use Atlas\Relay\Events\AutomationMetrics;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Models\RelayArchive;
 use Illuminate\Console\Command;
@@ -40,7 +39,6 @@ class ArchiveRelaysCommand extends Command
         $archiveAfterDays = (int) config('atlas-relay.archiving.archive_after_days', 30);
         $cutoff = Carbon::now()->subDays($archiveAfterDays);
 
-        $start = microtime(true);
         $count = 0;
 
         Relay::query()
@@ -74,12 +72,6 @@ class ArchiveRelaysCommand extends Command
                     $count += count($records);
                 });
             });
-
-        $duration = (int) round((microtime(true) - $start) * 1000);
-
-        event(new AutomationMetrics('archive', $count, $duration, [
-            'cutoff' => $cutoff->toDateTimeString(),
-        ]));
 
         $this->info("Archived {$count} relays.");
 

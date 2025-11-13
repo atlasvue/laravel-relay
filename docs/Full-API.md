@@ -89,9 +89,9 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 
 | Method | Behaviour |
 | --- | --- |
-| `startAttempt(Relay $relay)` | Increment attempt counters, mark status `RelayStatus::PROCESSING`, dispatch `RelayAttemptStarted`. |
-| `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and fire `RelayCompleted`. |
-| `markFailed(Relay $relay, RelayFailure $failure, array $attributes = [], ?int $durationMs = null)` | Persist failure data, set status `RelayStatus::FAILED`, and fire `RelayFailed`. |
+| `startAttempt(Relay $relay)` | Increment attempt counters, mark status `RelayStatus::PROCESSING`, and stamp processing timestamps. |
+| `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and reset retry metadata. |
+| `markFailed(Relay $relay, RelayFailure $failure, array $attributes = [], ?int $durationMs = null)` | Persist failure data, set status `RelayStatus::FAILED`, and store the failure reason. |
 | `recordResponse(Relay $relay, ?int $status, mixed $payload)` | Store outbound response details (`response_http_status` + payload) with truncation rules. |
 | `recordExceptionResponse(Relay $relay, Throwable $exception)` | Persist a shortened exception summary when event or job callbacks crash unexpectedly. |
 | `cancel(Relay $relay, ?RelayFailure $reason = null)` | Set status `RelayStatus::CANCELLED` and clear retry metadata. |
@@ -101,7 +101,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 
 | Method | Description |
 | --- | --- |
-| `capture(RelayContext $context): Relay` | Applies payload size limits, masks headers, merges lifecycle defaults, and persists to the `atlas_relays` table while logging/dispatching `RelayCaptured`. |
+| `capture(RelayContext $context): Relay` | Applies payload size limits, masks headers, merges lifecycle defaults, and persists to the `atlas_relays` table. |
 
 ---
 
@@ -141,20 +141,6 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 All models inherit from `AtlasModel`, which reads the target table names from config at construction time.
 
 > **Status Casting:** The `status` attribute on relay and archive models uses the `Enums\RelayStatus` PHP enum and is stored as an unsigned tinyint (`0`–`4`).
-
----
-
-## Events
-
-| Event | Fired When |
-| --- | --- |
-| `RelayCaptured` | Immediately after a relay is persisted. |
-| `RelayAttemptStarted` | When lifecycle transitions a relay into `processing`. |
-| `RelayCompleted` | After an attempt succeeds; includes optional duration. |
-| `RelayFailed` | After an attempt fails; carries the `RelayFailure` code. |
-| `RelayRequeued` | When automation re-enqueues a stuck/overdue relay. |
-| `RelayRestored` | When a relay is restored from the archive table. |
-| `AutomationMetrics` | After automation commands finish; exposes `operation`, `count`, `durationMs`, and contextual metadata. |
 
 ---
 

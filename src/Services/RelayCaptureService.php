@@ -7,13 +7,11 @@ namespace Atlas\Relay\Services;
 use Atlas\Relay\Enums\DestinationMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
-use Atlas\Relay\Events\RelayCaptured;
 use Atlas\Relay\Exceptions\InvalidDestinationUrlException;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Support\RelayContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use JsonException;
 
@@ -95,14 +93,6 @@ class RelayCaptureService
         }
 
         $relay = $this->relay->newQuery()->create($attributes);
-
-        Event::dispatch(new RelayCaptured($relay));
-        Log::info('atlas-relay:capture', [
-            'relay_id' => $relay->id,
-            'status' => $relay->status->label(),
-            'status_code' => $relay->status->value,
-            'mode' => $relay->mode,
-        ]);
 
         return $relay;
     }
