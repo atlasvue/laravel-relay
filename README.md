@@ -117,14 +117,14 @@ Relay::payload($payload)
     ->http()
     ->post('https://api.example.com/webhooks');
 ```
-Sends an outbound webhook directly without route lookup.  
+Sends an outbound webhook directly without route lookup. The `RelayHttpClient` wrapper still honors the usual chainable `PendingRequest` methods before executing verbs.
 (Relates to [Outbound Delivery](./docs/PRD/PRD-Outbound-Delivery.md))
 
 ### Mode Cheat Sheet
 
 | Mode         | Entry Point                             | Notes                                                                               |
 |--------------|-----------------------------------------|-------------------------------------------------------------------------------------|
-| HTTP         | `Relay::payload()->http()`              | Returns Laravel’s `PendingRequest`; all Http client methods remain available.       |
+| HTTP         | `Relay::payload()->http()`              | Returns an `Atlas\Relay\Support\RelayHttpClient` wrapper that proxies `PendingRequest` configuration while applying relay safeguards. |
 | Event        | `Relay::request()->event()`             | Executes sync callbacks/listeners and updates lifecycle before bubbling exceptions. |
 | Dispatch     | `Relay::payload()->dispatch()`          | Returns native `PendingDispatch`; job middleware records success/failure.           |
 | DispatchSync | `Relay::payload()->dispatchSync()`      | Runs immediately in-process with lifecycle tracking.                                |
