@@ -34,6 +34,10 @@ Relay::request($request)
 
 ## Advanced Guard Example
 ```php
+use Atlas\Relay\Guards\BaseInboundRequestGuard;
+use Atlas\Relay\Guards\InboundRequestGuardContext;
+use Atlas\Relay\Exceptions\InvalidWebhookHeadersException;
+
 class TenantWebhookGuard extends BaseInboundRequestGuard
 {
     public function validate(InboundRequestGuardContext $context): void

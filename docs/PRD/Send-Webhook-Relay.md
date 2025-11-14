@@ -55,8 +55,6 @@ Relay::provider('stripe')
     - response body (truncated)
 - Supported HTTP options: `timeout()`, `retry()`, `acceptJson()`, and more
 
-Full outbound examples are available in **Example Usage**.
-
 ## Failure Handling
 
 | Scenario                | Failure Code        |

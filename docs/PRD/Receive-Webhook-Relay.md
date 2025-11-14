@@ -9,6 +9,7 @@ Atlas Relay defines the rules for receiving, validating, normalizing, and captur
 - [Schema (Inbound Fields)](#schema-inbound-fields)
 - [Failure Codes](#failure-codes)
 - [Examples](#examples)
+- [Lifecycle Rules](#lifecycle-rules)
 - [Usage Link](#usage-link)
 
 ## High-Level Flow
@@ -20,23 +21,21 @@ HTTP Request → Guard (optional) → Normalize → Capture → Event/Dispatch
 4. Capture relay
 
 ## Guarding
-Guards may:
+
 - Require headers
 - Validate payloads with Laravel’s validator
 - Fail with custom messages
 - Choose whether failures should be captured or ignored
 
-Guard Interfaces:
+**Guard Interfaces:**
 ```
 Atlas\Relay\Contracts\InboundRequestGuardInterface
 ```
 
-Guard Base Class:
+**Guard Base Class:**
 ```
 Atlas\Relay\Guards\BaseInboundRequestGuard
 ```
-
-Full guard examples are in **Example Usage**.
 
 ## Capture Rules
 Atlas Relay must:
@@ -134,6 +133,10 @@ Relay::request($request)
 
 ### Failing Guard Example
 ```php
+
+use Atlas\Relay\Guards\BaseInboundRequestGuard;
+use Atlas\Relay\Guards\InboundRequestGuardContext;
+
 class ExampleGuard extends BaseInboundRequestGuard
 {
     public function validate(InboundRequestGuardContext $context): void
@@ -144,6 +147,14 @@ class ExampleGuard extends BaseInboundRequestGuard
     }
 }
 ```
+
+## Lifecycle Rules
+
+- Starts in **Queued** when the inbound request is captured.
+- Moves to **Processing** when the event handler, job, or downstream logic begins.
+- **Completed** when processing finishes successfully.
+- **Failed** when a guard, payload validation, or downstream exception occurs.
+- `completed_at` is always set—whether the relay succeeds or fails.
 
 ## Usage Link
 See **[Example Usage](./Example-Usage.md)** for complete inbound handling examples.
