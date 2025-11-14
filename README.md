@@ -14,12 +14,6 @@
 ## Overview
 Atlas Relay simplifies webhook and payload handling by ensuring every inbound and outbound request is captured, validated, executed, and recorded. It removes the fragility of ad‑hoc webhook handling and replaces it with a consistent, observable pipeline.
 
-Key guarantees:
-- Payloads are always **captured before processing**.
-- Supports events, jobs, chains, and outbound HTTP.
-- Complete auditability, retry awareness, and lifecycle tracking.
-- Simple API with powerful underlying behavior.
-
 ## Installation
 ```bash
 composer require atlas-php/relay
