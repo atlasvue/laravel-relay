@@ -50,7 +50,7 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 | 205  | CONNECTION_ERROR      | Network/SSL/DNS failure.                                  |
 | 206  | CONNECTION_TIMEOUT    | HTTP timeout.                                             |
 
-## Provider Inbound Guards
+## Provider Guards
 
 Provider-level guard profiles enforce authentication headers before any webhook proceeds. Configure them in `config/atlas-relay.php`:
 
@@ -74,8 +74,22 @@ Provider-level guard profiles enforce authentication headers before any webhook 
 
 Guards can be mapped via `setProvider('stripe')` or specified explicitly with `guard('stripe-signature')`. When the guard rejects a request, Atlas throws `Atlas\Relay\Exceptions\ForbiddenWebhookException` and marks the relay with `RelayFailure::FORBIDDEN_GUARD` when `capture_forbidden` is `true`. Set `capture_forbidden` to `false` for test/local providers to skip persisting failed attempts while still enforcing the guard.
 
-## Observability
+### Example with guard exception handling
+```php
+use Atlas\Relay\Exceptions\ForbiddenWebhookException;
+use Illuminate\Http\Request;
 
-All lifecycle details—including attempts, responses, durations, and failure reasons—are recorded directly on the `atlas_relays` table. Configuration flags are read from `atlas_relay_routes` when a relay is associated with a route.
+public function __invoke(Request $request)
+{
+    try {
+        Relay::request($request)
+            ->setProvider('stripe')
+            ->event(fn($payload) => $this->handleEvent($payload));
 
----
+        return response()->json(['status' => 'ok']);
+    } catch (ForbiddenWebhookException $exception) {
+        // Expected guard failure — respond with 403 and skip error reporting.
+        return response()->json(['message' => 'Forbidden'], 403);
+    }
+}
+```
