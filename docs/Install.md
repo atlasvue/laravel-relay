@@ -73,9 +73,11 @@ You may adjust times to fit your workload.
 
 ## 7. You're Ready
 
-Once installed, you can begin handling inbound webhooks using:
+Use the `Relay` facade from the package namespace:
 
 ```php
+use Atlas\Relay\Facades\Relay;
+
 Relay::request($request)
     ->guard(MyWebhookGuard::class)
     ->event(fn ($payload) => ...);
