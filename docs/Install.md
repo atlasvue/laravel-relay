@@ -46,15 +46,13 @@ Migrations will honor the connection configured in Step 3 (if provided).
 
 ## 6. Register the Scheduler
 
-Atlas ships timed tasks (retry polling, stuck relay requeueing, timeout enforcement, archiving, purging). In Laravel 10+ add them to `routes/console.php` using the `Schedule` facade:
+Atlas ships timed tasks for timeout enforcement, archiving, and purging. In Laravel 10+ add them to `routes/console.php` using the `Schedule` facade:
 
 ```php
 <?php
 
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('atlas-relay:retry-overdue')->everyMinute();
-Schedule::command('atlas-relay:requeue-stuck')->everyTenMinutes();
 Schedule::command('atlas-relay:enforce-timeouts')->hourly();
 Schedule::command('atlas-relay:archive')->dailyAt('22:00');
 Schedule::command('atlas-relay:purge-archives')->dailyAt('23:00');

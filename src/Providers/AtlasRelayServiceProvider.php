@@ -8,9 +8,7 @@ use Atlas\Relay\Console\Commands\ArchiveRelaysCommand;
 use Atlas\Relay\Console\Commands\EnforceRelayTimeoutsCommand;
 use Atlas\Relay\Console\Commands\InspectRelayCommand;
 use Atlas\Relay\Console\Commands\PurgeRelayArchivesCommand;
-use Atlas\Relay\Console\Commands\RequeueStuckRelaysCommand;
 use Atlas\Relay\Console\Commands\RestoreRelayCommand;
-use Atlas\Relay\Console\Commands\RetryOverdueRelaysCommand;
 use Atlas\Relay\Contracts\RelayManagerInterface;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\RelayManager;
@@ -52,8 +50,6 @@ class AtlasRelayServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                RetryOverdueRelaysCommand::class,
-                RequeueStuckRelaysCommand::class,
                 EnforceRelayTimeoutsCommand::class,
                 ArchiveRelaysCommand::class,
                 PurgeRelayArchivesCommand::class,

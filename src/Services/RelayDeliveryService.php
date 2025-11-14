@@ -27,7 +27,7 @@ use Traversable;
 /**
  * Orchestrates outbound delivery modes (events, HTTP, dispatch) and lifecycle recording.
  *
- * Defined by PRD: Outbound Delivery — Dispatch Mode.
+ * Defined by PRD: Send Webhook Relay — Dispatch Mode.
  */
 class RelayDeliveryService
 {

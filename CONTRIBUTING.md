@@ -13,8 +13,8 @@ each subsystem:
 | PRD                                                                  | Scope                                                                      |
 |----------------------------------------------------------------------|----------------------------------------------------------------------------|
 | [PRD-Atlas-Relay](./docs/PRD/PRD-Atlas-Relay.md)                     | End-to-end lifecycle overview, automation cadence, and domain terminology. |
-| [PRD-Payload-Capture](./docs/PRD/PRD-Payload-Capture.md)             | Request ingestion, validation, storage schema, and capture constraints.    |
-| [PRD-Outbound-Delivery](./docs/PRD/PRD-Outbound-Delivery.md)         | HTTP/event/dispatch delivery modes, retries, and timeout semantics.        |
+| [PRD-Receive-Webhook-Relay](./docs/PRD/PRD-Receive-Webhook-Relay.md) | Request ingestion, validation, guard handling, and capture constraints.    |
+| [PRD-Send-Webhook-Relay](./docs/PRD/PRD-Send-Webhook-Relay.md)       | HTTP/event/dispatch delivery paths, lifecycle recording, and safety rails. |
 | [PRD-Archiving-and-Logging](./docs/PRD/PRD-Archiving-and-Logging.md) | Retention, archive schema, purge automation, and observability mandates.   |
 | [PRD-Example-Usage](./docs/PRD/PRD-Example-Usage.md)                 | Canonical developer workflows and API usage patterns.                      |
 

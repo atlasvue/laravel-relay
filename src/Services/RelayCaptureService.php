@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Handles persistence of relay capture metadata according to the Payload Capture PRD.
+ * Handles persistence of relay capture metadata according to the Receive Webhook Relay PRD.
  */
 class RelayCaptureService
 {
@@ -86,19 +86,17 @@ class RelayCaptureService
         $method = $this->determineMethod($context);
 
         $attributes = [
-            'source_ip' => $this->determineSourceIp($request),
+            'type' => $context->type->value,
+            'status' => $status,
             'provider' => $context->provider,
             'reference_id' => $context->referenceId,
+            'source_ip' => $this->determineSourceIp($request),
             'headers' => $headers,
             'payload' => $payload,
-            'status' => $status,
-            'mode' => $context->mode,
             'failure_reason' => $failureReason?->value,
             'response_payload' => null,
-            'attempts' => 0,
             'method' => $method?->value,
             'url' => $url,
-            'next_retry_at' => null,
             'processing_at' => null,
             'completed_at' => null,
         ];
@@ -222,7 +220,7 @@ class RelayCaptureService
     private function reportValidationErrors(array $validationErrors, array $attributes): void
     {
         Log::warning('atlas-relay:validation', [
-            'mode' => $attributes['mode'] ?? null,
+            'type' => $attributes['type'] ?? null,
             'provider' => $attributes['provider'] ?? null,
             'reference_id' => $attributes['reference_id'] ?? null,
             'errors' => $validationErrors,

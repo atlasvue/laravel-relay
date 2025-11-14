@@ -13,7 +13,7 @@ use Orchestra\Testbench\TestCase as OrchestraTestCase;
 /**
  * Base TestCase bootstrapping Atlas Relay inside Orchestra Testbench so feature scenarios run against the package migrations and configuration.
  *
- * Defined by PRD: Payload Capture — Inbound Entry Point & Record Creation.
+ * Defined by PRD: Receive Webhook Relay — Inbound Entry Point & Record Creation.
  *
  * @property \Illuminate\Foundation\Application $app
  */

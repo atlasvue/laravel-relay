@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Tests\Feature;
 
-use Atlas\Relay\Contracts\RelayManagerInterface;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Facades\Relay;
@@ -13,9 +12,7 @@ use Atlas\Relay\Tests\TestCase;
 use Carbon\Carbon;
 
 /**
- * Ensures the lifecycle service can cancel relays and replay them back into the queue while clearing failure state.
- *
- * Defined by PRD: Atlas Relay — Lifecycle Flow Summary and Notes on retries and replays.
+ * Ensures the lifecycle service manages status transitions for cancel, failure, and completion flows.
  */
 class RelayLifecycleServiceTest extends TestCase
 {
@@ -26,22 +23,18 @@ class RelayLifecycleServiceTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_cancel_and_replay_flow(): void
+    public function test_cancel_flow_marks_relay_completed_with_failure_reason(): void
     {
         $relay = Relay::payload(['foo' => 'bar'])->capture();
 
-        /** @var RelayManagerInterface $manager */
-        $manager = app(RelayManagerInterface::class);
+        /** @var RelayLifecycleService $lifecycle */
+        $lifecycle = app(RelayLifecycleService::class);
 
-        $cancelled = $manager->cancel($relay);
+        $cancelled = $lifecycle->cancel($relay);
+
         $this->assertSame(RelayStatus::CANCELLED, $cancelled->status);
+        $this->assertSame(RelayFailure::CANCELLED->value, $cancelled->failure_reason);
         $this->assertNotNull($cancelled->completed_at);
-
-        $replayed = $manager->replay($cancelled);
-        $this->assertSame(RelayStatus::QUEUED, $replayed->status);
-        $this->assertNull($replayed->failure_reason);
-        $this->assertNull($replayed->completed_at);
-        $this->assertSame(0, $replayed->attempts);
     }
 
     public function test_processing_and_completion_timestamps_are_managed(): void
@@ -59,9 +52,6 @@ class RelayLifecycleServiceTest extends TestCase
         $this->assertSame(RelayStatus::PROCESSING, $relay->status);
         $this->assertTrue($relay->processing_at?->equalTo(Carbon::now()));
         $this->assertNull($relay->completed_at);
-        $this->assertSame(1, $relay->attempts);
-
-        $relay->forceFill(['next_retry_at' => Carbon::now()->addMinutes(5)])->save();
 
         Carbon::setTestNow('2025-04-01 08:05:00');
         $lifecycle->markFailed($relay, RelayFailure::ROUTE_TIMEOUT);
@@ -69,7 +59,6 @@ class RelayLifecycleServiceTest extends TestCase
 
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertTrue($relay->completed_at?->equalTo(Carbon::now()));
-        $this->assertNull($relay->next_retry_at);
 
         $relay->forceFill(['status' => RelayStatus::QUEUED])->save();
 
@@ -78,7 +67,6 @@ class RelayLifecycleServiceTest extends TestCase
         $relay->refresh();
 
         $this->assertNull($relay->completed_at);
-        $this->assertSame(2, $relay->attempts);
 
         Carbon::setTestNow('2025-04-01 08:07:00');
         $lifecycle->markCompleted($relay);
@@ -86,6 +74,5 @@ class RelayLifecycleServiceTest extends TestCase
 
         $this->assertSame(RelayStatus::COMPLETED, $relay->status);
         $this->assertTrue($relay->completed_at?->equalTo(Carbon::now()));
-        $this->assertNull($relay->next_retry_at);
     }
 }

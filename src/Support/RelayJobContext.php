@@ -9,7 +9,7 @@ use Atlas\Relay\Models\Relay;
 /**
  * Stores per-job relay context so jobs can introspect or signal failures without relying on static state.
  *
- * Defined by PRD: Outbound Delivery — Dispatch Mode Context Propagation.
+ * Defined by PRD: Send Webhook Relay — Dispatch Mode Context Propagation.
  */
 class RelayJobContext
 {

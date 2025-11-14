@@ -60,11 +60,6 @@ class RelayManager implements RelayManagerInterface
         return $this->lifecycleService->cancel($relay);
     }
 
-    public function replay(Relay $relay): Relay
-    {
-        return $this->lifecycleService->replay($relay);
-    }
-
     private function newBuilder(?Request $request = null): RelayBuilder
     {
         return new RelayBuilder(

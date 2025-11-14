@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Atlas\Relay\Enums\RelayStatus;
+use Atlas\Relay\Enums\RelayType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
@@ -16,11 +17,11 @@ return new class extends Migration
 
         $this->schema()->create($tableName, function (Blueprint $table): void {
             $table->unsignedBigInteger('id')->primary();
-            $table->string('mode', 32)->nullable();
-            $table->string('reference_id', 191)->nullable();
+            $table->unsignedTinyInteger('type')->default(RelayType::RELAY->value);
             $table->unsignedTinyInteger('status')->default(RelayStatus::QUEUED->value);
-            $table->string('source_ip', 15)->nullable();
             $table->string('provider', 64)->nullable();
+            $table->string('reference_id', 255)->nullable();
+            $table->string('source_ip', 15)->nullable();
             $table->json('headers')->nullable();
             $table->string('method', 16)->nullable();
             $table->string('url')->nullable();
@@ -28,15 +29,13 @@ return new class extends Migration
             $table->unsignedSmallInteger('response_http_status')->nullable();
             $table->json('response_payload')->nullable();
             $table->unsignedSmallInteger('failure_reason')->nullable();
-            $table->unsignedInteger('attempts')->default(0);
-            $table->timestamp('next_retry_at')->nullable();
             $table->timestamp('processing_at')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('archived_at')->nullable();
             $table->timestamps();
 
+            $table->index('type');
             $table->index('status');
-            $table->index('next_retry_at');
             $table->index('archived_at');
             $table->index('provider');
             $table->index('reference_id');

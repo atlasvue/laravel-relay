@@ -25,7 +25,7 @@ use ReflectionMethod;
 /**
  * Verifies HTTP deliveries enforce HTTPS, record responses, and translate transport conditions into relay failures.
  *
- * Defined by PRD: Outbound Delivery — HTTP Mode, HTTP Interception & Lifecycle Tracking, and Failure Reason Enum.
+ * Defined by PRD: Send Webhook Relay — HTTP Mode, HTTP Interception & Lifecycle Tracking, and Failure Reason Enum.
  */
 class HttpDeliveryTest extends TestCase
 {

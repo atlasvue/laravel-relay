@@ -7,6 +7,7 @@ namespace Atlas\Relay\Tests\Feature;
 use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
+use Atlas\Relay\Enums\RelayType;
 use Atlas\Relay\Facades\Relay;
 use Atlas\Relay\Models\Relay as RelayModel;
 use Atlas\Relay\Tests\TestCase;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 /**
  * Exercises payload capture flows covering header normalization, lifecycle overrides, payload limits, and validation failure handling.
  *
- * Defined by PRD: Payload Capture — Header Normalization, Payload Handling, Failure Reason Enum, and Edge Cases.
+ * Defined by PRD: Receive Webhook Relay — Header Normalization, Payload Handling, Failure Reason Enum, and Edge Cases.
  */
 class RelayCaptureTest extends TestCase
 {
@@ -27,12 +28,11 @@ class RelayCaptureTest extends TestCase
 
         $relay = Relay::request($request)
             ->payload(['status' => 'queued'])
-            ->mode('event')
             ->capture();
 
         $this->assertInstanceOf(RelayModel::class, $relay);
         $this->assertSame(RelayStatus::QUEUED, $relay->status);
-        $this->assertSame('event', $relay->mode);
+        $this->assertSame(RelayType::INBOUND, $relay->type);
         $this->assertSame('127.0.0.1', $relay->source_ip);
         $this->assertSame(['status' => 'queued'], $relay->payload);
         $headers = $relay->headers ?? [];

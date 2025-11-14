@@ -28,6 +28,4 @@ interface RelayManagerInterface
     public function http(): RelayHttpClient;
 
     public function cancel(Relay $relay): Relay;
-
-    public function replay(Relay $relay): Relay;
 }

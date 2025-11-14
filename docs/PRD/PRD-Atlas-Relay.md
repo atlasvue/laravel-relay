@@ -50,7 +50,7 @@ Relay::http()->post('https://example.com', ['payload' => true]);
 
 ## Relay Tracking Model
 Every relay is represented by a unified record containing the entire transaction.  
-Full schema lives in **Payload Capture PRD** (`atlas_relays` includes all request, response, and lifecycle fields). Retry/delay/timeout enforcement is handled directly from the relay record combined with global automation config.
+Full schema lives in **Receive Webhook Relay PRD** (`atlas_relays` includes all request, response, and lifecycle fields, including `RelayType` to distinguish inbound/outbound/system relays). Automation exclusively enforces processing timeouts based on inline timestamps plus the automation config.
 
 ---
 
@@ -72,24 +72,20 @@ Rules:
 
 ---
 
-## Retry, Delay & Timeout Logic
-Automation relies entirely on the relay record plus package configuration.
+## Timeout Logic
+Automation relies on inline timestamps plus package configuration.
 
 Source of configuration:
-- `next_retry_at` determines when `atlas-relay:retry-overdue` will requeue a relay.
-- Applications decide if/when to populate `next_retry_at` (e.g., after delivery failures).
 - `atlas-relay.automation.processing_timeout_seconds` + `timeout_buffer_seconds` control when `atlas-relay:enforce-timeouts` marks a relay as failed while it sits in `processing`.
 
 Rules:
-- Retries: when `next_retry_at` is in the past, `retry-overdue` resets status to `queued`, clears `next_retry_at`, and lifecycle services increment attempts on the next `startAttempt`.
-- Delays: simply set `next_retry_at` in the future; the retry job will pick it up when due.
 - Timeouts: once `processing_at` is older than the configured processing timeout (plus buffer), the timeout job marks the relay failed with `RelayFailure::ROUTE_TIMEOUT`.
 
 ---
 
 ## Observability
 All lifecycle data is stored inline on `atlas_relays`:  
-status, failure_reason, attempts, durations, `response_http_status`, `response_payload`, and scheduling timestamps. Automation relies on those columns plus the automation config section for enforcement thresholds.
+status, failure_reason, type, durations, `response_http_status`, `response_payload`, and scheduling timestamps. Automation relies on those columns plus the automation config section for enforcement thresholds.
 
 ---
 
@@ -109,11 +105,9 @@ Purging: 11 PM EST
 ## Automation Jobs
 | Job                  | Frequency    | Purpose                      |
 |----------------------|--------------|------------------------------|
-| Retry overdue        | Every min    | Retry relays past `next_retry_at` |
-| Requeue stuck relays | Every 10 min | Requeue long‑running relays  |
-| Timeout enforcement  | Hourly       | Mark timed‑out relays failed |
-| Archiving            | Daily        | Move old relays              |
-| Purging              | Daily        | Delete old archives          |
+    | Timeout enforcement  | Hourly       | Mark timed‑out relays failed |
+    | Archiving            | Daily        | Move old relays              |
+    | Purging              | Daily        | Delete old archives          |
 
 ---
 

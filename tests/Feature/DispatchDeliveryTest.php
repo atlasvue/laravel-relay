@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Queue;
 /**
  * Ensures dispatch deliveries update lifecycle state, expose Laravel pending dispatch ergonomics, and surface failure helpers.
  *
- * Defined by PRD: Outbound Delivery — Dispatch Mode, Laravel-Native Wrappers, and Failure Reason Enum.
+ * Defined by PRD: Send Webhook Relay — Dispatch Mode, Laravel-Native Wrappers, and Failure Reason Enum.
  */
 class DispatchDeliveryTest extends TestCase
 {
@@ -118,7 +118,6 @@ class DispatchDeliveryTest extends TestCase
         $relay = $this->assertRelayInstance($builder->relay());
         $relay->refresh();
 
-        $this->assertSame(1, $relay->attempts);
         $this->assertSame(RelayStatus::COMPLETED, $relay->status);
     }
 

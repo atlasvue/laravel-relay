@@ -10,7 +10,7 @@ use Illuminate\Foundation\Bus\PendingDispatch;
 /**
  * Pending chain wrapper that injects relay middleware when the chain is dispatched.
  *
- * Defined by PRD: Outbound Delivery — Dispatch Mode.
+ * Defined by PRD: Send Webhook Relay — Dispatch Mode.
  */
 class RelayPendingChain extends PendingChain
 {

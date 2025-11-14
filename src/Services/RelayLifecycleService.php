@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 use Throwable;
 
 /**
- * Provides lifecycle utilities for cancelling or replaying relays in accordance with PRD rules.
+ * Provides lifecycle utilities for transitioning relays in accordance with PRD rules.
  */
 class RelayLifecycleService
 {
@@ -21,7 +21,6 @@ class RelayLifecycleService
 
         $relay->forceFill([
             'status' => RelayStatus::PROCESSING,
-            'attempts' => ($relay->attempts ?? 0) + 1,
             'processing_at' => $now,
             'completed_at' => null,
         ])->save();
@@ -40,7 +39,6 @@ class RelayLifecycleService
             'status' => RelayStatus::COMPLETED,
             'failure_reason' => null,
             'completed_at' => $now,
-            'next_retry_at' => null,
         ], $attributes))->save();
 
         return $relay;
@@ -61,7 +59,6 @@ class RelayLifecycleService
             'status' => RelayStatus::FAILED,
             'failure_reason' => $failure->value,
             'completed_at' => $now,
-            'next_retry_at' => null,
         ], $attributes))->save();
 
         return $relay;
@@ -91,20 +88,6 @@ class RelayLifecycleService
             'status' => RelayStatus::CANCELLED,
             'failure_reason' => ($reason ?? RelayFailure::CANCELLED)->value,
             'completed_at' => $this->now(),
-            'next_retry_at' => null,
-        ])->save();
-
-        return $relay;
-    }
-
-    public function replay(Relay $relay): Relay
-    {
-        $relay->forceFill([
-            'status' => RelayStatus::QUEUED,
-            'failure_reason' => null,
-            'completed_at' => null,
-            'next_retry_at' => null,
-            'processing_at' => null,
         ])->save();
 
         return $relay;

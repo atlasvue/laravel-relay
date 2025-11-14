@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Confirms package migrations expose the lifecycle schema and configurable table names required for relays and archives.
  *
- * Defined by PRD: Payload Capture — Data Model; Archiving & Logging — Data Model and Configuration.
+ * Defined by PRD: Receive Webhook Relay — Data Model; Archiving & Logging — Data Model and Configuration.
  */
 class MigrationRegistrationTest extends TestCase
 {
@@ -21,20 +21,18 @@ class MigrationRegistrationTest extends TestCase
 
         $relaysTable = config('atlas-relay.tables.relays');
         $expectedLifecycleColumns = [
-            'source_ip',
+            'type',
+            'status',
             'provider',
             'reference_id',
+            'source_ip',
             'headers',
             'payload',
-            'status',
-            'mode',
             'method',
             'url',
             'failure_reason',
             'response_http_status',
             'response_payload',
-            'attempts',
-            'next_retry_at',
             'processing_at',
             'completed_at',
         ];

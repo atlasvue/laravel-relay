@@ -37,7 +37,6 @@ return [
     ],
 
     'automation' => [
-        'stuck_threshold_minutes' => env('ATLAS_RELAY_STUCK_THRESHOLD_MINUTES', 10),
         'timeout_buffer_seconds' => env('ATLAS_RELAY_TIMEOUT_BUFFER_SECONDS', 0),
         'processing_timeout_seconds' => env('ATLAS_RELAY_PROCESSING_TIMEOUT_SECONDS'),
     ],

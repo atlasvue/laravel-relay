@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Atlas\Relay\Enums;
 
 /**
- * Enumerates the lifecycle states assigned to relays per the Payload Capture and Outbound Delivery PRDs.
+ * Enumerates the lifecycle states assigned to relays per the Receive and Send Webhook Relay PRDs.
  */
 enum RelayStatus: int
 {

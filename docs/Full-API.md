@@ -10,9 +10,9 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | --- | --- | --- |
 | `Atlas\Relay\Providers\AtlasRelayServiceProvider` | Auto-discovered package provider | Registers config, migrations, commands, and singletons. |
 | `Atlas\Relay\Facades\Relay` facade | `atlas-relay.manager` binding | Fluent API entrypoint; import via `use Atlas\Relay\Facades\Relay;`. |
-| `Atlas\Relay\Contracts\RelayManagerInterface` / `app('atlas-relay.manager')` | `Atlas\Relay\RelayManager` | Provides `request()`, `payload()`, `http()`, `cancel()`, `replay()` entrypoints. |
-| `Atlas\Relay\Services\RelayCaptureService` | Capture service singleton | Persistent relay storage according to Payload Capture PRD. |
-| `Atlas\Relay\Services\RelayLifecycleService` | Lifecycle service singleton | Cancelling/replaying/marking relays; used by delivery helpers. |
+| `Atlas\Relay\Contracts\RelayManagerInterface` / `app('atlas-relay.manager')` | `Atlas\Relay\RelayManager` | Provides `request()`, `payload()`, `type()`, `http()`, `cancel()` entrypoints. |
+| `Atlas\Relay\Services\RelayCaptureService` | Capture service singleton | Persistent relay storage according to the Receive Webhook Relay PRD. |
+| `Atlas\Relay\Services\RelayLifecycleService` | Lifecycle service singleton | Cancelling and marking relays; used by delivery helpers. |
 | `Atlas\Relay\Services\RelayDeliveryService` | Delivery orchestrator singleton | HTTP/event/job execution wrappers. |
 | `Atlas\Relay\Support\RelayJobHelper` | Helper singleton | Injectable into jobs for accessing relay context and raising failures. |
 
@@ -26,12 +26,12 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | --- | --- |
 | `Relay::request(Request $request): RelayBuilder` | Seed a builder from an inbound HTTP request; headers, method, and payload are copied automatically for delivery callbacks. |
 | `Relay::payload(mixed $payload): RelayBuilder` | Seed a builder when no HTTP request exists (internal/system triggers). Prefer `request()`/`http()` for typical flows. |
+| `Relay::type(RelayType $type): RelayBuilder` | Override the inferred relay type (e.g., force `RelayType::OUTBOUND`). |
 | `Relay::provider(?string $provider): RelayBuilder` | Start a builder, tag it with the provider identifier, and continue configuring (works great before calling `http()`). |
 | `Relay::setReferenceId(?string $referenceId): RelayBuilder` | Same as above but for consumer-defined reference IDs, enabling tagging before issuing `http()` calls. |
 | `Relay::guard(?string $guard): RelayBuilder` | Force a specific inbound guard profile (useful for tests or providers without a global mapping). |
 | `Relay::http(): RelayHttpClient` | Return a ready-to-use HTTP client that captures payload + destination directly from the Laravel HTTP call. |
 | `Relay::cancel(Relay $relay): Relay` | Set the relay status to `cancelled` (uses lifecycle service). |
-| `Relay::replay(Relay $relay): Relay` | Reset lifecycle timestamps/attempt counts and enqueue the relay again. |
 
 ### Builder Configuration
 
@@ -39,7 +39,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | --- | --- |
 | `request(Request $request)` | Replace/define the inbound request snapshot (also extracts payload when present). |
 | `payload(mixed $payload)` | Provide raw payload data (array/stdClass/scalar) or override what was extracted from the request. |
-| `mode(string $mode)` | Force a specific delivery mode label stored on the relay. |
+| `type(RelayType $type)` | Explicitly set the `RelayType` (defaults to `INBOUND` for `request()` and `OUTBOUND` for `http()`). |
 | `validationError(string $field, string $message)` | Append validation feedback for reporting/logging prior to capture. |
 | `failWith(RelayFailure $failure, RelayStatus $status = RelayStatus::FAILED)` | Prefill capture state to failed with a specific failure code. |
 | `status(RelayStatus $status)` | Override the initial status before capture. |
@@ -89,12 +89,11 @@ HTTP deliveries merge headers in this order: inbound request snapshot (when usin
 | Method | Behaviour |
 | --- | --- |
 | `startAttempt(Relay $relay)` | Increment attempt counters, mark status `RelayStatus::PROCESSING`, and stamp processing timestamps. |
-| `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and clear `next_retry_at`. |
+| `markCompleted(Relay $relay, array $attributes = [], ?int $durationMs = null)` | Persist completion metadata, set status `RelayStatus::COMPLETED`, and clear `failure_reason`. |
 | `markFailed(Relay $relay, RelayFailure $failure, array $attributes = [], ?int $durationMs = null)` | Persist failure data, set status `RelayStatus::FAILED`, and store the failure reason. |
 | `recordResponse(Relay $relay, ?int $status, mixed $payload)` | Store outbound response details (`response_http_status` + payload) with truncation rules. |
 | `recordExceptionResponse(Relay $relay, Throwable $exception)` | Persist a shortened exception summary when event or job callbacks crash unexpectedly. |
 | `cancel(Relay $relay, ?RelayFailure $reason = null)` | Set status `RelayStatus::CANCELLED` and clear scheduling timestamps. |
-| `replay(Relay $relay)` | Reset lifecycle columns and set status `RelayStatus::QUEUED`, allowing automation to pick the relay back up. |
 
 ### RelayCaptureService
 
@@ -133,8 +132,6 @@ All models inherit from `AtlasModel`, which reads the target table names from co
 
 | Command | Description |
 | --- | --- |
-| `atlas-relay:retry-overdue` | Requeues relays whose retry window elapsed. |
-| `atlas-relay:requeue-stuck` | Moves relays stuck in `processing` back to `queued`. |
 | `atlas-relay:enforce-timeouts` | Marks relays as failed when they exceed timeout thresholds. |
 | `atlas-relay:archive {--chunk=}` | Moves completed/failed relays into the archive table (`--chunk` controls the batch size; defaults to `500`). |
 | `atlas-relay:purge-archives` | Deletes archived relays older than `atlas-relay.archiving.purge_after_days`. |
@@ -146,8 +143,6 @@ Register the recurring commands inside `routes/console.php` using Laravel’s sc
 ```php
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('atlas-relay:retry-overdue')->everyMinute();
-Schedule::command('atlas-relay:requeue-stuck')->everyTenMinutes();
 Schedule::command('atlas-relay:enforce-timeouts')->hourly();
 Schedule::command('atlas-relay:archive')->dailyAt('22:00');
 Schedule::command('atlas-relay:purge-archives')->dailyAt('23:00');
@@ -167,7 +162,7 @@ Adjust the cadence as needed for your environment or run the commands manually.
 | `http.max_redirects`, `http.enforce_https` | Outbound HTTP safeties. |
 | `inbound.provider_guards`, `inbound.guards` | Define inbound guard mappings + profiles (`capture_forbidden`, `required_headers`, optional validator class) that enforce authentication before webhook processing. |
 | `archiving.archive_after_days`, `archiving.purge_after_days` | Retention windows for archival and purge jobs. Use `atlas-relay:archive --chunk=` to adjust batch size (default `500`). |
-| `automation.stuck_threshold_minutes`, `automation.timeout_buffer_seconds`, `automation.processing_timeout_seconds` | Controls when automation jobs consider a relay overdue. |
+| `automation.timeout_buffer_seconds`, `automation.processing_timeout_seconds` | Controls when timeout enforcement considers a relay overdue. |
 
 ---
 
@@ -175,6 +170,7 @@ Adjust the cadence as needed for your environment or run the commands manually.
 
 | Component | Details |
 | --- | --- |
+| `Atlas\Relay\Enums\RelayType` | Distinguishes relay intent (`INBOUND`, `OUTBOUND`, `RELAY`). Builders infer the type automatically but you can call `type()` to override it. |
 | `Atlas\Relay\Enums\RelayFailure` | Canonical failure codes (`PAYLOAD_TOO_LARGE`, `NO_ROUTE_MATCH`, etc.) with helper `label()`/`description()`. Use them when forcing failures or handling lifecycle callbacks. |
 | `Atlas\Relay\Exceptions\RelayHttpException` | Thrown for HTTPS enforcement, redirect violations, or other outbound HTTP guard rails. Call `failure()` to obtain the associated `RelayFailure`. |
 | `Atlas\Relay\Exceptions\ForbiddenWebhookException` | Raised when inbound guard profiles reject a webhook; consumers should return `403` to the sender and consult relay logs for `FORBIDDEN_GUARD` failures. |

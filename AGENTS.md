@@ -34,7 +34,7 @@ Example:
  * Class UserWebhookService
  *
  * Handles webhook registration, processing, and retry logic for user-related events.
- * Defined by PRD: WebhookStation — Outbound Delivery Rules.
+ * Defined by PRD: Send Webhook Relay — Delivery Rules.
  */
 ```
 

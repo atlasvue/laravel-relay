@@ -11,7 +11,7 @@ use Throwable;
 /**
  * Exception thrown when outbound HTTP delivery violates PRD constraints or transport safeguards.
  *
- * Defined by PRD: Outbound Delivery — HTTP Mode, HTTP Interception & Lifecycle Tracking.
+ * Defined by PRD: Send Webhook Relay — HTTP Mode, HTTP Interception & Lifecycle Tracking.
  */
 class RelayHttpException extends RuntimeException
 {

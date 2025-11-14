@@ -11,7 +11,7 @@ use Atlas\Relay\Models\Relay;
 /**
  * Helper available inside jobs via the container for interacting with the active relay context.
  *
- * Defined by PRD: Outbound Delivery — Dispatch Mode Context Helpers.
+ * Defined by PRD: Send Webhook Relay — Dispatch Mode Context Helpers.
  */
 class RelayJobHelper
 {

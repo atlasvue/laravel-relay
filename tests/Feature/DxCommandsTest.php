@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Atlas\Relay\Tests\Feature;
 
 use Atlas\Relay\Enums\RelayStatus;
+use Atlas\Relay\Enums\RelayType;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Models\RelayArchive;
 use Atlas\Relay\Tests\TestCase;
@@ -23,7 +24,7 @@ class DxCommandsTest extends TestCase
             'payload' => ['demo' => true],
             'headers' => [],
             'status' => RelayStatus::QUEUED,
-            'mode' => 'http',
+            'type' => RelayType::INBOUND,
         ]);
 
         $this->runPendingCommand('atlas-relay:relay:inspect', ['id' => $relay->id])
@@ -39,7 +40,7 @@ class DxCommandsTest extends TestCase
             'payload' => ['demo' => true],
             'headers' => [],
             'status' => RelayStatus::COMPLETED,
-            'mode' => 'http',
+            'type' => RelayType::INBOUND,
         ]);
 
         $this->runPendingCommand('atlas-relay:relay:restore', [

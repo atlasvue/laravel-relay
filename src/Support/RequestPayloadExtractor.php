@@ -10,9 +10,9 @@ use Illuminate\Http\Request;
 use JsonException;
 
 /**
- * Normalizes inbound HTTP request bodies into payload arrays as defined by the Payload Capture PRD.
+ * Normalizes inbound HTTP request bodies into payload arrays as defined by the Receive Webhook Relay PRD.
  *
- * Defined by PRD: Payload Capture — Payload Handling.
+ * Defined by PRD: Receive Webhook Relay — Payload Handling.
  */
 class RequestPayloadExtractor
 {

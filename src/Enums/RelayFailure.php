@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Atlas\Relay\Enums;
 
 /**
- * Centralized relay failure codes defined across the Payload Capture and Outbound Delivery PRDs.
+ * Centralized relay failure codes defined across the Receive and Send Webhook Relay PRDs.
  */
 enum RelayFailure: int
 {

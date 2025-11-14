@@ -1,33 +1,39 @@
 
-# PRD — Payload Capture
+# PRD — Receive Webhook Relay
 
 ## Overview
 
-Payload Capture is the first stage of Atlas Relay. It records every inbound payload—HTTP, internal, or programmatic—storing headers, source IP, and JSON data with full lifecycle visibility. Guard profiles run before capture to reject unauthenticated webhooks while still logging the attempt when configured. All captures become relay records and move into routing and processing.
+Receive Webhook Relay is the first stage of Atlas Relay. It guarantees that every inbound webhook request (or internal payload) is captured, normalized, validated, and stored before any business logic executes. Guard profiles authenticate requests up front, the payload extractor normalizes JSON bodies, and the resulting relay record becomes the system of record for downstream delivery.
 
 ## Relay Schema (`atlas_relays`)
 
-| Field                  | Description                                             |
-|------------------------|---------------------------------------------------------|
-| `id`                   | Relay ID.                                               |
-| `source_ip`            | Inbound IPv4 address detected from the request.         |
-| `provider`             | Optional integration/provider label (indexed).          |
-| `reference_id`         | Optional consumer-provided reference (indexed).         |
-| `headers`              | Normalized header JSON.                                 |
-| `payload`              | Stored JSON payload.                                    |
-| `status`               | Enum: Queued, Processing, Completed, Failed, Cancelled. |
-| `mode`                 | event, dispatch, dispatch_chain, http.                  |
-| `failure_reason`       | Enum for capture or downstream failure.                 |
-| `response_http_status` | HTTP status of last outbound request.                   |
-| `response_payload`     | Truncated last HTTP response body.                      |
-| `attempts`             | Number of processing attempts executed.                 |
-| `next_retry_at`        | Next retry timestamp.                                   |
-| `method`               | HTTP verb captured for inbound/outbound delivery.       |
-| `url`                  | Normalized destination URL applied everywhere.          |
-| `processing_at`        | When the current attempt began processing.              |
-| `completed_at`         | When the relay finished (success, failure, or cancel).  |
-| `created_at`           | Capture timestamp.                                      |
-| `updated_at`           | Last state change.                                      |
+| Field                  | Description                                                                 |
+|------------------------|-----------------------------------------------------------------------------|
+| `id`                   | Relay identifier.                                                           |
+| `type`                 | `RelayType` enum. Inbound captures store `INBOUND`; other flows may use `OUTBOUND` or `RELAY`. |
+| `status`               | `RelayStatus` enum (Queued, Processing, Completed, Failed, Cancelled).      |
+| `provider`             | Optional integration/provider label (indexed).                              |
+| `reference_id`         | Optional consumer-provided reference (indexed).                             |
+| `source_ip`            | Inbound IPv4 address detected from the HTTP request.                        |
+| `headers`              | Normalized header JSON with sensitive keys masked.                          |
+| `payload`              | Stored JSON payload (truncated when the capture limit is exceeded).         |
+| `method`               | HTTP verb detected from the request (if present).                           |
+| `url`                  | Full inbound URL (or target URL for outbound calls).                        |
+| `failure_reason`       | `RelayFailure` enum for capture or downstream failures.                     |
+| `response_http_status` | Last recorded outbound HTTP status.                                         |
+| `response_payload`     | Truncated outbound response payload.                                        |
+| `processing_at`        | Timestamp for when processing began.                                        |
+| `completed_at`         | Timestamp for when the relay finished (success/failure/cancel).             |
+| `created_at`           | Capture timestamp.                                                          |
+| `updated_at`           | Last state change.                                                          |
+
+## RelayType enum (`Enums\RelayType`)
+
+| Value | Label    | Usage                                                            |
+|-------|----------|------------------------------------------------------------------|
+| 1     | INBOUND  | Automatically applied when `Relay::request()` captures a webhook.|
+| 2     | OUTBOUND | Applied when issuing webhooks directly via `Relay::http()` without a request context. |
+| 3     | RELAY    | Default classification for internal/system-driven relays.        |
 
 ## Failure Reason Enum (`Enums\RelayFailure`)
 
@@ -48,7 +54,7 @@ Payload Capture is the first stage of Atlas Relay. It records every inbound payl
 
 ## Provider Guards
 
-Provider-level guard profiles enforce authentication headers before any webhook proceeds. Configure them in `config/atlas-relay.php`:
+Provider-level guard profiles enforce authentication requirements before any webhook proceeds. Configure them in `config/atlas-relay.php`:
 
 ```php
 'inbound' => [
@@ -62,7 +68,7 @@ Provider-level guard profiles enforce authentication headers before any webhook 
                 'Stripe-Signature',
                 'X-Relay-Key' => env('RELAY_SHARED_KEY'),
             ],
-            'validator' => \App\Guards\StripeWebhookGuard::class, // optional
+            'validator' => \App\Guards\StripeWebhookValidator::class, // optional
         ],
     ],
 ];
@@ -70,7 +76,7 @@ Provider-level guard profiles enforce authentication headers before any webhook 
 
 Guards can be mapped via `provider('stripe')` or specified explicitly with `guard('stripe-signature')`. When the guard rejects a request, Atlas throws `Atlas\Relay\Exceptions\ForbiddenWebhookException` (auth failure) or `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` (payload validation failure) and marks the relay with `RelayFailure::FORBIDDEN_GUARD` or `RelayFailure::INVALID_PAYLOAD` when `capture_forbidden` is `true`. Set `capture_forbidden` to `false` for test/local providers to skip persisting failed attempts while still enforcing the guard.
 
-### Example with guard exception handling
+### Guard exception handling
 ```php
 use Atlas\Relay\Exceptions\ForbiddenWebhookException;
 use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
@@ -81,11 +87,10 @@ public function __invoke(Request $request)
     try {
         Relay::request($request)
             ->provider('stripe')
-            ->event(fn($payload) => $this->handleEvent($payload));
+            ->event(fn ($payload) => $this->handleEvent($payload));
 
         return response()->json(['message' => 'ok']);
     } catch (ForbiddenWebhookException $exception) {
-        // Expected guard failure — respond with 403 and skip error reporting.
         return response()->json(['message' => 'Forbidden'], 403);
     } catch (InvalidWebhookPayloadException $exception) {
         return response()->json(['message' => $exception->getMessage()], 422);
@@ -133,3 +138,10 @@ class StripeWebhookValidator implements InboundGuardValidatorInterface
     }
 }
 ```
+
+## Capture Rules
+
+- Payloads are truncated when `atlas-relay.payload.max_bytes` is exceeded and the relay is marked `PAYLOAD_TOO_LARGE`.
+- Sensitive headers are masked according to `atlas-relay.capture.sensitive_headers`.
+- Destination URLs longer than 255 characters are rejected with `InvalidDestinationUrlException`.
+- When guards opt-in to `capture_forbidden`, relays are stored even when authentication fails, ensuring auditability.

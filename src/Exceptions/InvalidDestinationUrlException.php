@@ -9,7 +9,7 @@ use InvalidArgumentException;
 /**
  * Exception thrown when a destination URL exceeds storage constraints.
  *
- * Defined by PRD: Payload Capture — Destination URL requirements.
+ * Defined by PRD: Receive Webhook Relay — Destination URL requirements.
  */
 class InvalidDestinationUrlException extends InvalidArgumentException
 {

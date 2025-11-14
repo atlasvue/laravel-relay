@@ -15,7 +15,7 @@ use RuntimeException;
 /**
  * Confirms synchronous event deliveries mark relays completed on success, capture payload context, and map exceptions to failure reasons.
  *
- * Defined by PRD: Outbound Delivery — Event Mode and Failure Reason Enum.
+ * Defined by PRD: Send Webhook Relay — Event Mode and Failure Reason Enum.
  */
 class EventDeliveryTest extends TestCase
 {

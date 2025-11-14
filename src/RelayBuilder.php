@@ -7,6 +7,7 @@ namespace Atlas\Relay;
 use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
+use Atlas\Relay\Enums\RelayType;
 use Atlas\Relay\Exceptions\ForbiddenWebhookException;
 use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
 use Atlas\Relay\Models\Relay;
@@ -32,7 +33,7 @@ class RelayBuilder
 
     private mixed $payload;
 
-    private ?string $mode = null;
+    private ?RelayType $type = null;
 
     /** @var array<string, array<int, string>> */
     private array $validationErrors = [];
@@ -83,6 +84,7 @@ class RelayBuilder
     public function request(Request $request): self
     {
         $this->applyRequest($request);
+        $this->type = RelayType::INBOUND;
 
         return $this;
     }
@@ -94,9 +96,9 @@ class RelayBuilder
         return $this;
     }
 
-    public function mode(string $mode): self
+    public function type(RelayType $type): self
     {
-        $this->mode = $mode;
+        $this->type = $type;
 
         return $this;
     }
@@ -152,7 +154,7 @@ class RelayBuilder
         return new RelayContext(
             $this->request,
             $this->payload,
-            $this->mode,
+            $this->type ?? RelayType::RELAY,
             $this->failureReason,
             $this->status,
             $this->validationErrors,
@@ -193,7 +195,6 @@ class RelayBuilder
     public function event(callable $callback): mixed
     {
         $this->ensureInboundGuardValidated();
-        $this->mode ??= 'event';
         $relay = $this->ensureRelayCaptured();
 
         return $this->deliveryService->executeEvent($relay, $callback);
@@ -202,7 +203,7 @@ class RelayBuilder
     public function http(): RelayHttpClient
     {
         $this->ensureInboundGuardValidated();
-        $this->mode ??= 'http';
+        $this->type ??= RelayType::OUTBOUND;
 
         $headerRecorder = function (array $headers): void {
             $this->mergeHeaders($headers);
@@ -218,7 +219,6 @@ class RelayBuilder
     public function dispatch(mixed $job): PendingDispatch
     {
         $this->ensureInboundGuardValidated();
-        $this->mode ??= 'dispatch';
         $relay = $this->ensureRelayCaptured();
 
         return $this->deliveryService->dispatch($relay, $job);
@@ -230,7 +230,6 @@ class RelayBuilder
     public function dispatchChain(array $jobs): PendingChain
     {
         $this->ensureInboundGuardValidated();
-        $this->mode ??= 'dispatch_chain';
         $relay = $this->ensureRelayCaptured();
 
         return $this->deliveryService->dispatchChain($relay, $jobs);
@@ -349,6 +348,7 @@ class RelayBuilder
     private function applyRequest(Request $request): void
     {
         $this->request = $request;
+        $this->type = RelayType::INBOUND;
         $this->resetGuardState();
 
         if ($this->payload === null) {

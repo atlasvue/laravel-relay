@@ -13,7 +13,7 @@ use Closure;
 /**
  * Job middleware that updates relay lifecycle state on success or failure.
  *
- * Defined by PRD: Outbound Delivery — Dispatch Mode Middleware Lifecycle.
+ * Defined by PRD: Send Webhook Relay — Dispatch Mode Middleware Lifecycle.
  */
 class RelayJobMiddleware
 {

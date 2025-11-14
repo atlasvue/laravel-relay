@@ -6,6 +6,7 @@ namespace Atlas\Relay\Models;
 
 use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayStatus;
+use Atlas\Relay\Enums\RelayType;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -20,12 +21,11 @@ class RelayArchive extends AtlasModel
         'headers' => 'array',
         'payload' => 'array',
         'response_payload' => 'array',
+        'type' => RelayType::class,
         'status' => RelayStatus::class,
         'method' => HttpMethod::class,
-        'attempts' => 'integer',
         'response_http_status' => 'integer',
         'failure_reason' => 'integer',
-        'next_retry_at' => 'immutable_datetime',
         'processing_at' => 'immutable_datetime',
         'completed_at' => 'immutable_datetime',
         'archived_at' => 'immutable_datetime',

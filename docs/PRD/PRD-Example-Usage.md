@@ -4,7 +4,7 @@
 
 This document shows **exact, practical usage** of Atlas Relay with a focus on **dispatching Laravel jobs through Atlas** while preserving **full access to Laravel’s native queue controls**. Atlas wraps dispatch to **track relay lifecycle** (success/failure, failure_reason, timings) but **does not change** Laravel semantics or APIs.
 
-See also (technical foundations): `PRD-Payload-Capture.md`, `PRD-Outbound-Delivery.md`, `PRD-Archiving-and-Logging.md`.
+See also (technical foundations): `PRD-Receive-Webhook-Relay.md`, `PRD-Send-Webhook-Relay.md`, `PRD-Archiving-and-Logging.md`.
 
 ---
 
@@ -98,7 +98,7 @@ Relay::http()
 **Behavior**
 - Delegates to Laravel’s `Http` under the hood; **all client features** available.
 - Atlas intercepts first, records payload/method/URL plus `response_http_status`/`response_payload`, then returns the response.
-- Lifecycle tuning (retry/delay/timeout) is managed via relay lifecycle services + automation config.
+- Lifecycle tracking is managed via relay lifecycle services; additional retries must be implemented by the consuming app.
 
 ---
 
