@@ -83,12 +83,12 @@ public function __invoke(Request $request)
             ->provider('stripe')
             ->event(fn($payload) => $this->handleEvent($payload));
 
-        return response()->json(['status' => 'ok']);
+        return response()->json(['message' => 'ok']);
     } catch (ForbiddenWebhookException $exception) {
         // Expected guard failure — respond with 403 and skip error reporting.
         return response()->json(['message' => 'Forbidden'], 403);
     } catch (InvalidWebhookPayloadException $exception) {
-        return response()->json(['message' => 'Payload rejected'], 422);
+        return response()->json(['message' => $exception->getMessage()], 422);
     }
 }
 ```
