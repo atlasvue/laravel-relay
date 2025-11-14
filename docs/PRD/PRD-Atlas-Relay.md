@@ -27,27 +27,27 @@ Lifecycle applies to **all** relay types.
 The following fields **must exist** on both `atlas_relays` and `atlas_relay_archives`.  
 Archive table must mirror this schema exactly (plus `archived_at`).
 
-| Field | Description |
-|-------|-------------|
-| `id` | Primary key |
-| `type` | RelayType enum (`INBOUND`, `OUTBOUND`, `RELAY`) |
-| `status` | RelayStatus enum (`QUEUED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`) |
-| `provider` | Optional integration label |
-| `reference_id` | Optional external reference ID |
-| `source_ip` | Inbound only — captured from request |
-| `headers` | Normalized JSON headers (sensitive masked) |
-| `payload` | JSON payload or raw body |
-| `method` | HTTP verb |
-| `url` | Full request or outbound destination URL |
-| `failure_reason` | RelayFailure enum |
-| `meta` | Consumer-defined JSON metadata |
-| `response_http_status` | Outbound response status |
-| `response_payload` | Truncated response body |
-| `attempt` | Number of processing attempts |
-| `processing_at` | Timestamp when execution starts |
-| `completed_at` | Timestamp when lifecycle ends (success/failure/cancel) |
-| `created_at` | Capture timestamp |
-| `updated_at` | State change timestamp |
+| Field                  | Description                                                                   |
+|------------------------|-------------------------------------------------------------------------------|
+| `id`                   | Primary key                                                                   |
+| `type`                 | RelayType enum (`INBOUND`, `OUTBOUND`, `RELAY`)                               |
+| `status`               | RelayStatus enum (`QUEUED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`) |
+| `provider`             | Optional integration label                                                    |
+| `reference_id`         | Optional external reference ID                                                |
+| `source_ip`            | Inbound only — captured from request                                          |
+| `headers`              | Normalized JSON headers (sensitive masked)                                    |
+| `payload`              | JSON payload or raw body                                                      |
+| `method`               | HTTP verb                                                                     |
+| `url`                  | Full request or outbound destination URL                                      |
+| `failure_reason`       | RelayFailure enum                                                             |
+| `meta`                 | Consumer-defined JSON metadata                                                |
+| `response_http_status` | Outbound response status                                                      |
+| `response_payload`     | Truncated response body                                                       |
+| `attempt`              | Number of processing attempts                                                 |
+| `processing_at`        | Timestamp when execution starts                                               |
+| `completed_at`         | Timestamp when lifecycle ends (success/failure/cancel)                        |
+| `created_at`           | Capture timestamp                                                             |
+| `updated_at`           | State change timestamp                                                        |
 
 Inbound-specific rules → see **Receive Webhook Relay PRD**  
 Outbound-specific rules → see **Send Webhook Relay PRD**
@@ -59,19 +59,19 @@ Outbound-specific rules → see **Send Webhook Relay PRD**
 Atlas Relay defines a unified failure enum used across inbound/outbound flows.  
 This list must remain complete and consistent across PRDs.
 
-| Code | Label | Meaning |
-|------|--------|---------|
-| 100 | EXCEPTION | Uncaught exception inside event/job execution |
-| 101 | PAYLOAD_TOO_LARGE | Payload exceeded configured max bytes |
-| 102 | NO_ROUTE_MATCH | Reserved for legacy routing logic |
-| 103 | CANCELLED | Relay manually cancelled |
-| 104 | ROUTE_TIMEOUT | Consumer-determined processing timeout |
-| 105 | INVALID_PAYLOAD | Malformed JSON or decode error |
-| 108 | INVALID_GUARD_HEADERS | Inbound guard header validation failed |
-| 109 | INVALID_GUARD_PAYLOAD | Inbound guard payload validation failed |
-| 201 | HTTP_ERROR | Non-2xx response |
-| 205 | CONNECTION_ERROR | Network/DNS/SSL failure |
-| 206 | CONNECTION_TIMEOUT | HTTP timeout |
+| Code | Label                 | Meaning                                       |
+|------|-----------------------|-----------------------------------------------|
+| 100  | EXCEPTION             | Uncaught exception inside event/job execution |
+| 101  | PAYLOAD_TOO_LARGE     | Payload exceeded configured max bytes         |
+| 102  | NO_ROUTE_MATCH        | Reserved for legacy routing logic             |
+| 103  | CANCELLED             | Relay manually cancelled                      |
+| 104  | ROUTE_TIMEOUT         | Consumer-determined processing timeout        |
+| 105  | INVALID_PAYLOAD       | Malformed JSON or decode error                |
+| 108  | INVALID_GUARD_HEADERS | Inbound guard header validation failed        |
+| 109  | INVALID_GUARD_PAYLOAD | Inbound guard payload validation failed       |
+| 201  | HTTP_ERROR            | Non-2xx response                              |
+| 205  | CONNECTION_ERROR      | Network/DNS/SSL failure                       |
+| 206  | CONNECTION_TIMEOUT    | HTTP timeout                                  |
 
 Inbound PRD links directly to this table for all failure codes it references.
 
@@ -79,11 +79,11 @@ Inbound PRD links directly to this table for all failure codes it references.
 
 # 4. Relay Types
 
-| Enum | Meaning |
-|------|---------|
-| `INBOUND` | Captured from an inbound HTTP request (`Relay::request()`) |
-| `OUTBOUND` | Created when sending a webhook using `Relay::http()` |
-| `RELAY` | Internal/system relay |
+| Enum       | Meaning                                                    |
+|------------|------------------------------------------------------------|
+| `INBOUND`  | Captured from an inbound HTTP request (`Relay::request()`) |
+| `OUTBOUND` | Created when sending a webhook using `Relay::http()`       |
+| `RELAY`    | Internal/system relay                                      |
 
 Relay type inference:
 - `request()` → INBOUND
@@ -96,13 +96,13 @@ Relay type inference:
 
 Universal rules applying to all relay types:
 
-| Status | Meaning |
-|--------|---------|
-| `QUEUED` | Relay created but not executed |
-| `PROCESSING` | Execution started (event, job, HTTP) |
-| `COMPLETED` | Execution finished successfully |
-| `FAILED` | Execution finished with failure_reason |
-| `CANCELLED` | Explicit cancellation (`Relay::cancel()`) |
+| Status       | Meaning                                   |
+|--------------|-------------------------------------------|
+| `QUEUED`     | Relay created but not executed            |
+| `PROCESSING` | Execution started (event, job, HTTP)      |
+| `COMPLETED`  | Execution finished successfully           |
+| `FAILED`     | Execution finished with failure_reason    |
+| `CANCELLED`  | Explicit cancellation (`Relay::cancel()`) |
 
 Transitions:
 - `QUEUED → PROCESSING` when job/event/HTTP begins
