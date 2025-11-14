@@ -9,6 +9,7 @@ use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Facades\Relay;
 use Atlas\Relay\Models\Relay as RelayModel;
 use Atlas\Relay\Tests\TestCase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
 
@@ -46,6 +47,18 @@ class EventDeliveryTest extends TestCase
         $relay = $this->assertRelayInstance($builder->relay());
 
         $this->assertSame(['value' => 'ok'], $relay->response_payload);
+        $this->assertNull($relay->response_http_status);
+    }
+
+    public function test_event_completion_records_array_return_value(): void
+    {
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        $builder->event(fn (): array => ['foo' => 'baz', 'count' => 3]);
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $this->assertSame(['foo' => 'baz', 'count' => 3], $relay->response_payload);
         $this->assertNull($relay->response_http_status);
     }
 
@@ -145,6 +158,69 @@ class EventDeliveryTest extends TestCase
 
         $relay = $this->assertRelayInstance($builder->relay());
         $this->assertSame($payload, $relay->payload);
+    }
+
+    public function test_event_can_return_http_response_from_facade_chain(): void
+    {
+        $payload = ['foo' => 'bar'];
+        $request = Request::create(
+            '/relay',
+            'POST',
+            [],
+            [],
+            [],
+            [],
+            json_encode($payload, JSON_THROW_ON_ERROR)
+        );
+        $request->headers->set('Content-Type', 'application/json');
+
+        $response = Relay::request($request)->event(
+            function (array $incoming): JsonResponse {
+                return response()->json(['ok' => $incoming['foo']], 202);
+            }
+        );
+
+        $this->assertInstanceOf(JsonResponse::class, $response);
+        $this->assertSame(202, $response->getStatusCode());
+
+        $relay = $this->assertRelayInstance(RelayModel::query()->first());
+        $this->assertSame(202, $relay->response_http_status);
+        $this->assertSame(['ok' => 'bar'], $relay->response_payload);
+    }
+
+    public function test_event_http_response_payload_is_truncated_to_limit(): void
+    {
+        $payload = ['foo' => 'bar'];
+        $request = Request::create(
+            '/relay',
+            'POST',
+            [],
+            [],
+            [],
+            [],
+            json_encode($payload, JSON_THROW_ON_ERROR)
+        );
+        $request->headers->set('Content-Type', 'application/json');
+
+        $builder = Relay::request($request);
+        $limit = 32;
+        $original = config('atlas-relay.payload_max_bytes');
+        config()->set('atlas-relay.payload_max_bytes', $limit);
+
+        $body = str_repeat('long-payload', 5);
+
+        try {
+            $builder->event(function () use ($body) {
+                return response($body, 200);
+            });
+        } finally {
+            config()->set('atlas-relay.payload_max_bytes', $original);
+        }
+
+        $relay = $this->assertRelayInstance($builder->relay());
+        $this->assertIsString($relay->response_payload);
+        $this->assertSame(substr($body, 0, $limit), $relay->response_payload);
+        $this->assertSame(200, $relay->response_http_status);
     }
 
     public function test_event_callback_can_access_relay_instance(): void

@@ -112,10 +112,11 @@ use Atlas\Relay\Facades\Relay;
 
 public function __invoke(Request $request)
 {
-    Relay::request($request)
+    // Your event can also return a response
+    $response = Relay::request($request)
         ->event(fn ($payload) => $this->handleEvent($payload));
 
-    return response()->json(['ok' => true]);
+    return response()->json($response);
 }
 ```
 

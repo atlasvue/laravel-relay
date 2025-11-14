@@ -208,7 +208,7 @@ class RelayBuilder
         $this->ensureInboundGuardValidated();
         $relay = $this->ensureRelayCaptured();
 
-        return $this->deliveryService->executeEvent($relay, $callback);
+        return $this->deliveryService->executeEvent($relay, $callback, $this->request);
     }
 
     public function http(): RelayHttpClient

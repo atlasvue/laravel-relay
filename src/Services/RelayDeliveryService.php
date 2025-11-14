@@ -13,8 +13,10 @@ use Atlas\Relay\Support\RelayPendingChain;
 use Closure;
 use Illuminate\Bus\ChainedBatch;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Foundation\Bus\PendingChain;
 use Illuminate\Foundation\Bus\PendingDispatch;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use JsonSerializable;
@@ -22,6 +24,8 @@ use ReflectionException;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Throwable;
 use Traversable;
 
 /**
@@ -38,13 +42,13 @@ class RelayDeliveryService
     /**
      * Executes a synchronous event handler.
      */
-    public function executeEvent(Relay $relay, callable $callback): mixed
+    public function executeEvent(Relay $relay, callable $callback, ?Request $request = null): mixed
     {
         $relay = $this->lifecycle->startAttempt($relay);
         $startedAt = microtime(true);
 
         try {
-            $result = $this->invokeEventCallback($relay, $callback);
+            $result = $this->invokeEventCallback($relay, $callback, $request);
             $duration = $this->durationSince($startedAt);
             $this->lifecycle->markCompleted($relay, [], $duration);
 
@@ -158,13 +162,13 @@ class RelayDeliveryService
         return (int) max(0, round((microtime(true) - $startedAt) * 1000));
     }
 
-    private function invokeEventCallback(Relay $relay, callable $callback): mixed
+    private function invokeEventCallback(Relay $relay, callable $callback, ?Request $request = null): mixed
     {
         $arguments = $this->determineEventArguments($callback, $relay);
 
         $result = $callback(...$arguments);
 
-        $this->recordEventResponse($relay, $result);
+        $this->recordEventResponse($relay, $result, $request);
 
         return $result;
     }
@@ -231,9 +235,20 @@ class RelayDeliveryService
         return null;
     }
 
-    private function recordEventResponse(Relay $relay, mixed $response): void
+    private function recordEventResponse(Relay $relay, mixed $response, ?Request $request = null): void
     {
         if ($response === null) {
+            return;
+        }
+
+        if ($response instanceof Responsable) {
+            $response = $response->toResponse($this->requestForResponsable($request));
+        }
+
+        if ($response instanceof SymfonyResponse) {
+            $payload = $this->normalizeSymfonyResponsePayload($response);
+            $this->lifecycle->recordResponse($relay, $response->getStatusCode(), $payload);
+
             return;
         }
 
@@ -266,5 +281,65 @@ class RelayDeliveryService
         }
 
         return ['value' => $response];
+    }
+
+    private function requestForResponsable(?Request $request): Request
+    {
+        if ($request instanceof Request) {
+            return $request;
+        }
+
+        $resolved = function_exists('request') ? request() : null;
+
+        if ($resolved instanceof Request) {
+            return $resolved;
+        }
+
+        return Request::create('/', 'GET');
+    }
+
+    private function normalizeSymfonyResponsePayload(SymfonyResponse $response): mixed
+    {
+        $content = $this->responseContent($response);
+
+        if ($content === null) {
+            return null;
+        }
+
+        $decoded = json_decode($content, true);
+
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        return $this->truncateResponseString($content);
+    }
+
+    private function responseContent(SymfonyResponse $response): ?string
+    {
+        try {
+            $content = $response->getContent();
+        } catch (Throwable) {
+            return null;
+        }
+
+        if ($content === '' || $content === false) {
+            return null;
+        }
+
+        return (string) $content;
+    }
+
+    private function truncateResponseString(string $content): string
+    {
+        $maxBytes = (int) config('atlas-relay.payload_max_bytes', 64 * 1024);
+
+        if ($maxBytes <= 0) {
+            return '';
+        }
+
+        return strlen($content) > $maxBytes
+            ? substr($content, 0, $maxBytes)
+            : $content;
     }
 }
