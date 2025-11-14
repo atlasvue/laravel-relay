@@ -9,10 +9,10 @@ This document contains **all practical usage patterns** for Atlas Relay, includi
 - Accessing relay context in jobs
 
 Inbound flow rules are defined in:  
-**[PRD — Receive Webhook Relay](./PRD-Receive-Webhook-Relay.md)**
+**[Receive Webhook Relay](./Receive-Webhook-Relay.md)**
 
 Outbound delivery rules are defined in:  
-**[PRD — Send Webhook Relay](./PRD-Send-Webhook-Relay.md)**
+**[Send Webhook Relay](./Send-Webhook-Relay.md)**
 
 Full API:  
 **[Full API Reference](../Full-API.md)**
@@ -200,6 +200,6 @@ class ExampleJob implements ShouldQueue
 
 This document centralizes **all usage examples**.  
 
-For inbound rules, see **[PRD — Receive Webhook Relay](./PRD-Receive-Webhook-Relay.md)**.  
+For inbound rules, see **[Receive Webhook Relay](./Receive-Webhook-Relay.md)**.  
 
-For outbound rules, see **[PRD — Send Webhook Relay](./PRD-Send-Webhook-Relay.md)**.
+For outbound rules, see **[Send Webhook Relay](./Send-Webhook-Relay.md)**.

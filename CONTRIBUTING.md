@@ -12,11 +12,11 @@ each subsystem:
 
 | PRD                                                                  | Scope                                                                      |
 |----------------------------------------------------------------------|----------------------------------------------------------------------------|
-| [PRD-Atlas-Relay](./docs/PRD/PRD-Atlas-Relay.md)                     | End-to-end lifecycle overview, automation cadence, and domain terminology. |
-| [PRD-Receive-Webhook-Relay](./docs/PRD/PRD-Receive-Webhook-Relay.md) | Request ingestion, validation, guard handling, and capture constraints.    |
-| [PRD-Send-Webhook-Relay](./docs/PRD/PRD-Send-Webhook-Relay.md)       | HTTP/event/dispatch delivery paths, lifecycle recording, and safety rails. |
-| [PRD-Archiving-and-Logging](./docs/PRD/PRD-Archiving-and-Logging.md) | Retention, archive schema, purge automation, and observability mandates.   |
-| [PRD-Example-Usage](./docs/PRD/PRD-Example-Usage.md)                 | Canonical developer workflows and API usage patterns.                      |
+| [Atlas Relay](./docs/PRD/Atlas-Relay.md)                     | End-to-end lifecycle overview, automation cadence, and domain terminology. |
+| [Receive Webhook Relay](./docs/PRD/Receive-Webhook-Relay.md) | Request ingestion, validation, guard handling, and capture constraints.    |
+| [Send Webhook Relay](./docs/PRD/Send-Webhook-Relay.md)       | HTTP/event/dispatch delivery paths, lifecycle recording, and safety rails. |
+| [Archiving & Logging](./docs/PRD/Archiving-and-Logging.md)   | Retention, archive schema, purge automation, and observability mandates.   |
+| [Example Usage](./docs/PRD/Example-Usage.md)                 | Canonical developer workflows and API usage patterns.                      |
 
 Always cite the relevant PRD(s) in code comments and pull request descriptions when implementing or modifying behavior.
 

@@ -20,9 +20,9 @@ Atlas Relay ensures:
 `Request → Receive Webhook Relay → Send Webhook Relay → Complete → Archive`
 
 Each stage of the lifecycle is defined in its own PRD:
-- [Receive Webhook Relay](./docs/PRD/PRD-Receive-Webhook-Relay.md): receiving and validating data
-- [Send Webhook Relay](./docs/PRD/PRD-Send-Webhook-Relay.md): transmitting payloads and recording responses
-- [Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md): long-term retention and audit trails
+- [Receive Webhook Relay](./docs/PRD/Receive-Webhook-Relay.md): receiving and validating data
+- [Send Webhook Relay](./docs/PRD/Send-Webhook-Relay.md): transmitting payloads and recording responses
+- [Archiving & Logging](./docs/PRD/Archiving-and-Logging.md): long-term retention and audit trails
 
 ---
 
@@ -42,7 +42,7 @@ Additional setup instructions (config publish, migrations, scheduler, etc.) live
 
 ### Receive a Webhook
 
-Using `Relay::request($request)` automatically grabs the inbound payload (JSON) and sends it into your events for processing. See [Receive Webhook Relay](./docs/PRD/PRD-Receive-Webhook-Relay.md) for more details.
+Using `Relay::request($request)` automatically grabs the inbound payload (JSON) and sends it into your events for processing. See [Receive Webhook Relay](./docs/PRD/Receive-Webhook-Relay.md) for more details.
 
 ```php
 // The most common way
@@ -57,7 +57,7 @@ Relay::request($request)->dispatch(new ExampleJob);
 
 Using `event` synchronously processes your action, but you can also use Laravel's `dispatch()` and its methods directly. Atlas will ensure to mark the relay completed or failed depending on the execution. 
 
-[Example with guard and exception handling](./docs/PRD/PRD-Receive-Webhook-Relay.md#guard-exception-handling)
+[Example with guard and exception handling](./docs/PRD/Receive-Webhook-Relay.md#guard-exception-handling)
 
 ---
 
@@ -83,7 +83,7 @@ Relay::http()->withHeaders([
 ])->post('https://api.example.com/webhooks', $payload);
 ```
 
-Atlas will record the response status and payload of your request (See [Send Webhook Relay](./docs/PRD/PRD-Send-Webhook-Relay.md)).
+Atlas will record the response status and payload of your request (See [Send Webhook Relay](./docs/PRD/Send-Webhook-Relay.md)).
 
 ---
 
@@ -91,11 +91,11 @@ Atlas will record the response status and payload of your request (See [Send Web
 
 - [Install Guide](./docs/Install.md)
 - [Full API Reference](./docs/Full-API.md)
-- [PRD — Atlas Relay](./docs/PRD/PRD-Atlas-Relay.md)
-- [PRD — Receive Webhook Relay](./docs/PRD/PRD-Receive-Webhook-Relay.md)
-- [PRD — Send Webhook Relay](./docs/PRD/PRD-Send-Webhook-Relay.md)
-- [PRD — Archiving & Logging](./docs/PRD/PRD-Archiving-and-Logging.md)
-- [PRD — Example Usage](./docs/PRD/PRD-Example-Usage.md)
+- [Atlas Relay](./docs/PRD/Atlas-Relay.md)
+- [Receive Webhook Relay](./docs/PRD/Receive-Webhook-Relay.md)
+- [Send Webhook Relay](./docs/PRD/Send-Webhook-Relay.md)
+- [Archiving & Logging](./docs/PRD/Archiving-and-Logging.md)
+- [Example Usage](./docs/PRD/Example-Usage.md)
 
 ---
 

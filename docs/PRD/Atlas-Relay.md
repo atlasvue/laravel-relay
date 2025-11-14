@@ -5,10 +5,10 @@ Atlas Relay is the **authoritative system specification** for how all relays (in
 It defines the **full data model**, **full lifecycle**, and **failure semantics** used across every PRD.
 
 Specific flows:
-- Inbound/receive behavior → **[PRD — Receive Webhook Relay](./PRD-Receive-Webhook-Relay.md)**
-- Outbound/send behavior → **[PRD — Send Webhook Relay](./PRD-Send-Webhook-Relay.md)**
-- Archival retention → **[PRD — Archiving & Logging](./PRD-Archiving-and-Logging.md)**
-- Usage & examples → **[PRD — Example Usage](./PRD-Example-Usage.md)**
+- Inbound/receive behavior → **[Receive Webhook Relay](./Receive-Webhook-Relay.md)**
+- Outbound/send behavior → **[Send Webhook Relay](./Send-Webhook-Relay.md)**
+- Archival retention → **[Archiving & Logging](./Archiving-and-Logging.md)**
+- Usage & examples → **[Example Usage](./Example-Usage.md)**
 
 This document defines the unified requirements all other PRDs rely on.
 
@@ -164,7 +164,7 @@ Outbound delivery details → **Send Webhook Relay PRD**
 # 8. Archiving (Retention Requirements)
 
 Full behavior defined in:  
-**[PRD — Archiving & Logging](./PRD-Archiving-and-Logging.md)**
+**[Archiving & Logging](./Archiving-and-Logging.md)**
 
 Key requirements:
 - Archive relays after configured days
@@ -175,13 +175,12 @@ Key requirements:
 
 # 9. Cross‑PRD Linking (Canonical References)
 
-- Inbound rules → **[Receive Webhook Relay](./PRD-Receive-Webhook-Relay.md)**
-- Outbound rules → **[Send Webhook Relay](./PRD-Send-Webhook-Relay.md)**
-- Usage examples → **[Example Usage](./PRD-Example-Usage.md)**
-- System retention → **[Archiving & Logging](./PRD-Archiving-and-Logging.md)**
+- Inbound rules → **[Receive Webhook Relay](./Receive-Webhook-Relay.md)**
+- Outbound rules → **[Send Webhook Relay](./Send-Webhook-Relay.md)**
+- Usage examples → **[Example Usage](./Example-Usage.md)**
+- System retention → **[Archiving & Logging](./Archiving-and-Logging.md)**
 
 ---
 
 This document is the **source of truth** for all relay fields, lifecycle rules, and failure codes.  
 All sub‑PRDs must reference this document for schema and failure semantics.
-

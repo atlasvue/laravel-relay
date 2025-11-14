@@ -5,10 +5,10 @@ This PRD defines **how Atlas Relay sends outbound webhooks** using Laravel’s `
 It focuses exclusively on **sending** webhooks — not receiving, guarding, or capturing inbound requests.
 
 For inbound flow, see:  
-**[PRD — Receive Webhook Relay](./PRD-Receive-Webhook-Relay.md)**
+**[Receive Webhook Relay](./Receive-Webhook-Relay.md)**
 
 For usage examples, see:  
-**[PRD — Example Usage](./PRD-Example-Usage.md#4-direct-http)**
+**[Example Usage](./Example-Usage.md#4-direct-http)**
 
 Full API reference:  
 **[Full API](../Full-API.md)**
@@ -137,4 +137,4 @@ More lifecycle rules:
 
 This PRD defines only the **outbound send** behavior.  
 For practical examples, see:  
-**[PRD — Example Usage](./PRD-Example-Usage.md#4-direct-http)**
+**[Example Usage](./Example-Usage.md#4-direct-http)**

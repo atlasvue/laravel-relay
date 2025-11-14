@@ -5,10 +5,10 @@ Defines **how Atlas Relay receives, validates, and captures inbound webhooks**.
 This PRD covers *only* the inbound side: guarding, normalization, and capture.
 
 All execution patterns (events, jobs, HTTP) and full usage examples live in:  
-**[PRD — Example Usage](./PRD-Example-Usage.md)**
+**[Example Usage](./Example-Usage.md)**
 
 Outbound delivery rules are documented in:  
-**[PRD — Send Webhook Relay](./PRD-Send-Webhook-Relay.md)**
+**[Send Webhook Relay](./Send-Webhook-Relay.md)**
 
 Full API details are in:  
 **[Full API Reference](../Full-API.md)**
@@ -28,7 +28,7 @@ Full API details are in:
 
 ## Guarding (Optional)
 Full guard examples (basic + advanced), including inline comments explaining *why* certain patterns exist, are located in:  
-**[PRD — Example Usage](./PRD-Example-Usage.md#14-advanced-guard-example-with-commentary)**
+**[Example Usage](./Example-Usage.md#14-advanced-guard-example-with-commentary)**
 
 Guards may:
 - Require headers
@@ -59,7 +59,7 @@ Atlas Relay must:
 - Persist the relay **before** any business logic or outbound actions
 
 Full examples of capture + delivery flow:  
-**[PRD — Example Usage](./PRD-Example-Usage.md)**
+**[Example Usage](./Example-Usage.md)**
 
 ---
 
@@ -100,6 +100,6 @@ For production-ready examples—including:
 - End‑to‑end webhook → event/job/http flows
 
 See:  
-**[PRD — Example Usage](./PRD-Example-Usage.md)**
+**[Example Usage](./Example-Usage.md)**
 
 This PRD defines the inbound boundary; all examples and delivery patterns live in the usage document for clarity.

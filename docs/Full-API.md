@@ -3,9 +3,9 @@ This document lists **all public APIs** exposed by Atlas Relay.
 It aims to be **exhaustive, minimal, and strictly focused on method availability**, not examples.
 
 For lifecycle rules, schema, and functional behavior, see:
-- **[PRD — Atlas Relay](./PRD/PRD-Atlas-Relay.md)**
-- **[PRD — Receive Webhook Relay](./PRD/PRD-Receive-Webhook-Relay.md)**
-- **[PRD — Send Webhook Relay](./PRD/PRD-Send-Webhook-Relay.md)**
+- **[Atlas Relay](./PRD/Atlas-Relay.md)**
+- **[Receive Webhook Relay](./PRD/Receive-Webhook-Relay.md)**
+- **[Send Webhook Relay](./PRD/Send-Webhook-Relay.md)**
 
 ---
 
@@ -111,7 +111,7 @@ While resolved internally, these services are publicly accessible for extension.
 | `RelayCaptureService`   | `capture()`                                                                                                      | Low-level persistence used by builder.          |
 
 Full semantics:  
-**[PRD — Atlas Relay](./PRD/PRD-Atlas-Relay.md)**
+**[Atlas Relay](./PRD/Atlas-Relay.md)**
 
 ---
 
@@ -123,7 +123,7 @@ Full semantics:
 | `Atlas\Relay\Models\RelayArchive` | Archived relay records |
 
 Both conform to the unified schema defined in:  
-**[Relay Data Model](./PRD/PRD-Atlas-Relay.md#2-relay-data-model-full-field-specification)**
+**[Relay Data Model](./PRD/Atlas-Relay.md#2-relay-data-model-full-field-specification)**
 
 ---
 
@@ -137,7 +137,7 @@ Both conform to the unified schema defined in:
 | `atlas-relay:relay:restore {id}` | Restore archive → live          |
 
 Details:  
-**[Archiving & Logging](./PRD/PRD-Archiving-and-Logging.md)**
+**[Archiving & Logging](./PRD/Archiving-and-Logging.md)**
 
 ---
 
@@ -152,7 +152,7 @@ Details:
 | `RelayFailure` | All canonical failure codes                      | Unified error semantics |
 
 Full failure list:  
-**[Failure Codes](./PRD/PRD-Atlas-Relay.md#3-failure-reason-enum-complete-spec)**
+**[Failure Codes](./PRD/Atlas-Relay.md#3-failure-reason-enum-complete-spec)**
 
 ## 8.2 Exceptions
 

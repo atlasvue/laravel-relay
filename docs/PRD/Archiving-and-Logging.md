@@ -6,7 +6,7 @@ It ensures long‑term auditability without log tables and guarantees that the l
 
 This document applies to **all relay types** (inbound, outbound, internal).  
 For the unified relay schema, see:  
-**[PRD — Atlas Relay](./PRD-Atlas-Relay.md#2-relay-data-model-full-field-specification)**
+**[Atlas Relay](./Atlas-Relay.md#2-relay-data-model-full-field-specification)**
 
 ---
 
@@ -47,7 +47,7 @@ Archiving moves completed/failed relays from the live table into the archive tab
 
 ### 4.1 Live Table: `atlas_relays`
 The live table contains **all fields** listed in the Atlas Relay PRD:  
-**[Full Relay Field Spec](./PRD-Atlas-Relay.md#2-relay-data-model-full-field-specification)**
+**[Full Relay Field Spec](./Atlas-Relay.md#2-relay-data-model-full-field-specification)**
 
 ### 4.2 Archive Table: `atlas_relay_archives`
 - Must mirror **every column** from `atlas_relays`, including enums and casts.
@@ -164,10 +164,10 @@ Partial archive states must never occur.
 
 # 11. PRD Cross‑Links
 
-- Unified system spec → **[PRD — Atlas Relay](./PRD-Atlas-Relay.md)**
-- Inbound capture rules → **[PRD — Receive Webhook Relay](./PRD-Receive-Webhook-Relay.md)**
-- Outbound send rules → **[PRD — Send Webhook Relay](./PRD-Send-Webhook-Relay.md)**
-- Usage examples → **[PRD — Example Usage](./PRD-Example-Usage.md)**
+- Unified system spec → **[Atlas Relay](./Atlas-Relay.md)**
+- Inbound capture rules → **[Receive Webhook Relay](./Receive-Webhook-Relay.md)**
+- Outbound send rules → **[Send Webhook Relay](./Send-Webhook-Relay.md)**
+- Usage examples → **[Example Usage](./Example-Usage.md)**
 
 ---
 
