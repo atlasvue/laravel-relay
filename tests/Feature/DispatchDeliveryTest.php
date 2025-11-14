@@ -8,6 +8,8 @@ use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Exceptions\RelayJobFailedException;
 use Atlas\Relay\Facades\Relay;
+use Atlas\Relay\Jobs\RelayClosureJob;
+use Atlas\Relay\Models\Relay as RelayModel;
 use Atlas\Relay\Support\RelayJobContext;
 use Atlas\Relay\Support\RelayJobHelper;
 use Atlas\Relay\Support\RelayJobMiddleware;
@@ -15,6 +17,7 @@ use Atlas\Relay\Tests\TestCase;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Request;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Queue;
@@ -148,6 +151,103 @@ class DispatchDeliveryTest extends TestCase
 
         $this->assertSame($relay->id, $capturedJob->relayId);
     }
+
+    public function test_request_builder_dispatches_closure_with_payload(): void
+    {
+        Queue::fake();
+
+        $payload = ['status' => 'queued'];
+        $request = Request::create(
+            '/relay',
+            'POST',
+            [],
+            [],
+            [],
+            [],
+            json_encode($payload, JSON_THROW_ON_ERROR)
+        );
+        $request->headers->set('Content-Type', 'application/json');
+
+        $capturedPayload = null;
+        $capturedRelayId = null;
+
+        $builder = Relay::request($request);
+        $builder->dispatch(function (array $incoming, RelayModel $relay) use (&$capturedPayload, &$capturedRelayId): void {
+            $capturedPayload = $incoming;
+            $capturedRelayId = $relay->id;
+        });
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $queuedJob = null;
+        Queue::assertPushed(RelayClosureJob::class, function (RelayClosureJob $job) use (&$queuedJob): bool {
+            $queuedJob = $job;
+
+            return true;
+        });
+
+        $this->assertNotNull($queuedJob);
+
+        $middleware = $queuedJob->middleware[0] ?? null;
+        $this->assertInstanceOf(RelayJobMiddleware::class, $middleware);
+
+        $middleware->handle($queuedJob, function (RelayClosureJob $job): void {
+            $job->handle();
+        });
+
+        $this->assertSame($payload, $capturedPayload);
+        $this->assertSame($relay->id, $capturedRelayId);
+
+        $relay->refresh();
+        $this->assertSame(RelayStatus::COMPLETED, $relay->status);
+        $this->assertNull($relay->failure_reason);
+    }
+
+    public function test_request_builder_dispatches_job_with_request_payload(): void
+    {
+        Queue::fake();
+
+        PayloadAwareJob::$handledPayload = null;
+
+        $payload = ['status' => 'queued', 'count' => 3];
+        $request = Request::create(
+            '/relay',
+            'POST',
+            [],
+            [],
+            [],
+            [],
+            json_encode($payload, JSON_THROW_ON_ERROR)
+        );
+        $request->headers->set('Content-Type', 'application/json');
+
+        $builder = Relay::request($request);
+        $builder->dispatch(new PayloadAwareJob);
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $queuedJob = null;
+        Queue::assertPushed(PayloadAwareJob::class, function (PayloadAwareJob $job) use (&$queuedJob): bool {
+            $queuedJob = $job;
+
+            return true;
+        });
+
+        $this->assertNotNull($queuedJob);
+
+        $middleware = $queuedJob->middleware[0] ?? null;
+        $this->assertInstanceOf(RelayJobMiddleware::class, $middleware);
+
+        $middleware->handle($queuedJob, function (PayloadAwareJob $job): void {
+            $job->handle();
+        });
+
+        $this->assertSame($payload, PayloadAwareJob::$handledPayload);
+
+        $relay->refresh();
+        $this->assertSame(RelayStatus::COMPLETED, $relay->status);
+        $this->assertNull($relay->failure_reason);
+    }
 }
 
 class SuccessfulJob implements ShouldQueue
@@ -194,6 +294,36 @@ class TypicalQueuedJob implements ShouldQueue
     public function handle(): void
     {
         // no-op
+    }
+}
+
+class PayloadAwareJob implements ShouldQueue
+{
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+
+    /**
+     * @var array<mixed>|null
+     */
+    public static $handledPayload;
+
+    /**
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [];
+    }
+
+    public function handle(): void
+    {
+        /** @var RelayJobContext $context */
+        $context = app(RelayJobContext::class);
+        $relay = $context->current();
+
+        self::$handledPayload = $relay?->payload;
     }
 }
 

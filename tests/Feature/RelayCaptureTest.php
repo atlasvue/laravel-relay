@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Atlas\Relay\Tests\Feature;
 
+use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Facades\Relay;
@@ -56,6 +57,30 @@ class RelayCaptureTest extends TestCase
         config()->set('atlas-relay.capture.sensitive_headers', $originalSensitive);
     }
 
+    public function test_request_capture_persists_http_metadata(): void
+    {
+        $payload = ['status' => 'received'];
+        $request = Request::create(
+            'https://relay.test/hooks',
+            'PATCH',
+            [],
+            [],
+            [],
+            [],
+            json_encode($payload, JSON_THROW_ON_ERROR)
+        );
+        $request->headers->set('Content-Type', 'application/json');
+        $request->headers->set('X-Signature', 'abc123');
+
+        $relay = Relay::request($request)->capture();
+
+        $this->assertSame(HttpMethod::PATCH, $relay->method);
+        $this->assertSame('https://relay.test/hooks', $relay->url);
+        $this->assertSame($payload, $relay->payload);
+        $headers = $relay->headers ?? [];
+        $this->assertSame('abc123', $headers['x-signature'] ?? null);
+    }
+
     public function test_payload_size_limit_marks_relay_failed(): void
     {
         $payload = ['data' => str_repeat('A', 70 * 1024)];
@@ -65,6 +90,35 @@ class RelayCaptureTest extends TestCase
         $this->assertSame(RelayStatus::FAILED, $relay->status);
         $this->assertSame(RelayFailure::PAYLOAD_TOO_LARGE->value, $relay->failure_reason);
         $this->assertNull($relay->payload);
+    }
+
+    public function test_request_payload_limit_marks_relay_failed(): void
+    {
+        $originalMax = config('atlas-relay.payload.max_bytes');
+        config()->set('atlas-relay.payload.max_bytes', 32);
+
+        try {
+            $payload = ['data' => str_repeat('A', 128)];
+
+            $request = Request::create(
+                '/relay',
+                'POST',
+                [],
+                [],
+                [],
+                [],
+                json_encode($payload, JSON_THROW_ON_ERROR)
+            );
+            $request->headers->set('Content-Type', 'application/json');
+
+            $relay = Relay::request($request)->capture();
+
+            $this->assertSame(RelayStatus::FAILED, $relay->status);
+            $this->assertSame(RelayFailure::PAYLOAD_TOO_LARGE->value, $relay->failure_reason);
+            $this->assertNull($relay->payload);
+        } finally {
+            config()->set('atlas-relay.payload.max_bytes', $originalMax);
+        }
     }
 
     public function test_validation_errors_mark_failure_reason(): void

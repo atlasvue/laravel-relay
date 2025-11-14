@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Atlas\Relay\Services;
 
 use Atlas\Relay\Enums\RelayFailure;
+use Atlas\Relay\Jobs\RelayClosureJob;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Support\RelayHttpClient;
 use Atlas\Relay\Support\RelayJobMiddleware;
@@ -80,6 +81,10 @@ class RelayDeliveryService
 
     public function dispatch(Relay $relay, mixed $job): PendingDispatch
     {
+        if ($job instanceof Closure) {
+            $job = RelayClosureJob::fromClosure($job, $relay->id);
+        }
+
         $this->applyJobMiddleware($job, $relay);
 
         return dispatch($job);
