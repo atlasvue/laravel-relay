@@ -118,19 +118,23 @@ Atlas supports three delivery modes:
 
 ### HTTP Delivery
 - Uses Laravel `Http` client directly
+  See **[Send Webhook Relay](./Send-Webhook-Relay.md)** for full outbound send behavior.
 - Records:
     - response status
     - truncated response body
 - Exceptions map to HTTP-related RelayFailure codes
 
-Outbound delivery details → **Send Webhook Relay PRD**
-
 ## Archiving (Retention Requirements)
 
-Full behavior defined in:  
-**[Archiving & Logging](./Archiving-and-Logging.md)**
+Full behavior defined in: **[Archiving & Logging](./Archiving-and-Logging.md)**
 
 Key requirements:
 - Archive relays after configured days
 - Purge archives after retention period
 - Archive tables mirror schema exactly
+
+## Also See
+- [Receive Webhook Relay](./Receive-Webhook-Relay.md)
+- [Send Webhook Relay](./Send-Webhook-Relay.md)
+- [Archiving & Logging](./Archiving-and-Logging.md)
+- [Example Usage](./Example-Usage.md)
