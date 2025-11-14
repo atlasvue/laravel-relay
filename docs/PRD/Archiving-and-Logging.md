@@ -11,8 +11,6 @@ Atlas Relay defines a unified retention and archival model that preserves full r
 - [Purge Process Requirements](#purge-process-requirements)
 - [Scheduling Requirements](#scheduling-requirements)
 - [Observability Requirements](#observability-requirements)
-- [Failure Handling](#failure-handling)
-- [Integration Requirements](#integration-requirements)
 
 ## Overview
 Atlas Relay uses a two-table retention system:
@@ -80,15 +78,11 @@ Default values:
 - Purge: 180 days
 
 ## Scheduling Requirements
-Recommended configuration:
+
 ```php
 Schedule::command('atlas-relay:archive')->dailyAt('22:00');
 Schedule::command('atlas-relay:purge-archives')->dailyAt('23:00');
 ```
-
-Schedules may vary, but:
-- Archive must run before purge
-- They must not run in parallel
 
 ## Observability Requirements
 Inline relay fields provide all metrics for analysis, including:
@@ -99,20 +93,6 @@ Inline relay fields provide all metrics for analysis, including:
 - lifecycle timestamps
 
 External logging systems may be used for deep analytics.
-
-## Failure Handling
-Archiving and purging processes must be fully resumable.  
-System logging should capture:
-- batch boundaries
-- last successful processed ID
-- error summaries
-
-No partial archive states may be created.
-
-## Integration Requirements
-- Depends on accurate lifecycle updates from the capture and delivery pipelines
-- Works identically across INBOUND, OUTBOUND, and RELAY types
-- Consumers may build external analytics on top of archives
 
 ## Also See
 - [Atlas Relay](./Atlas-Relay.md)
