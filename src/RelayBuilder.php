@@ -8,6 +8,7 @@ use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Exceptions\ForbiddenWebhookException;
+use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Routing\RouteContext as RoutingContext;
 use Atlas\Relay\Routing\Router;
@@ -24,6 +25,7 @@ use Atlas\Relay\Support\RequestPayloadExtractor;
 use Illuminate\Foundation\Bus\PendingChain;
 use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Http\Request;
+use Throwable;
 
 /**
  * Fluent builder that mirrors the relay lifecycle defined in the PRDs and persists relays via the capture service.
@@ -332,7 +334,7 @@ class RelayBuilder
 
         try {
             $this->guardService->validate($request, $profile, $relay);
-        } catch (ForbiddenWebhookException $exception) {
+        } catch (ForbiddenWebhookException|InvalidWebhookPayloadException $exception) {
             $this->handleGuardFailure($exception, $profile, $relay);
 
             throw $exception;
@@ -366,7 +368,7 @@ class RelayBuilder
     }
 
     private function handleGuardFailure(
-        ForbiddenWebhookException $exception,
+        Throwable $exception,
         InboundGuardProfile $profile,
         ?Relay $relay
     ): void {
@@ -374,16 +376,33 @@ class RelayBuilder
             return;
         }
 
+        $failure = $exception instanceof InvalidWebhookPayloadException
+            ? RelayFailure::INVALID_PAYLOAD
+            : RelayFailure::FORBIDDEN_GUARD;
+
+        $status = $exception instanceof ForbiddenWebhookException
+            ? $exception->statusCode()
+            : ($exception instanceof InvalidWebhookPayloadException ? $exception->statusCode() : 400);
+
+        $payload = [
+            'guard' => $profile->name,
+            'message' => $exception->getMessage(),
+        ];
+
+        if ($exception instanceof ForbiddenWebhookException) {
+            $payload['violations'] = $exception->violations();
+        }
+
+        if ($exception instanceof InvalidWebhookPayloadException) {
+            $payload['errors'] = $exception->violations();
+        }
+
         $this->lifecycleService->markFailed(
             $relay,
-            RelayFailure::FORBIDDEN_GUARD,
+            $failure,
             [
-                'response_http_status' => $exception->statusCode(),
-                'response_payload' => [
-                    'guard' => $profile->name,
-                    'message' => $exception->getMessage(),
-                    'violations' => $exception->violations(),
-                ],
+                'response_http_status' => $status,
+                'response_payload' => $payload,
             ]
         );
     }

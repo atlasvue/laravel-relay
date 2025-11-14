@@ -111,7 +111,7 @@ class InboundGuardTest extends TestCase
             ],
         ]);
 
-        FakeGuardValidator::$shouldFail = true;
+        FakeGuardValidator::$mode = FakeGuardValidator::MODE_FORBIDDEN;
 
         $request = HttpRequest::create('/relay', 'POST');
         $request->headers->set('X-Signature', 'expected');
@@ -132,6 +132,45 @@ class InboundGuardTest extends TestCase
         $this->assertSame(RelayFailure::FORBIDDEN_GUARD->value, $relay->failure_reason);
         $this->assertNotEmpty(FakeGuardValidator::$captures);
         $this->assertSame($relay->id, FakeGuardValidator::$captures[0]['relay_id']);
+    }
+
+    public function test_custom_guard_validator_can_raise_payload_errors(): void
+    {
+        config()->set('atlas-relay.inbound', [
+            'guards' => [
+                'validator-guard' => [
+                    'capture_forbidden' => true,
+                    'required_headers' => [
+                        'X-Signature' => 'expected',
+                    ],
+                    'validator' => FakeGuardValidator::class,
+                ],
+            ],
+        ]);
+
+        FakeGuardValidator::$mode = FakeGuardValidator::MODE_PAYLOAD;
+
+        $request = HttpRequest::create('/relay', 'POST');
+        $request->headers->set('X-Signature', 'expected');
+
+        try {
+            Relay::request($request)
+                ->guard('validator-guard')
+                ->capture();
+
+            $this->fail('Payload guard exception was not thrown.');
+        } catch (\Atlas\Relay\Exceptions\InvalidWebhookPayloadException $exception) {
+            $this->assertStringContainsString('validator-guard', $exception->getMessage());
+        }
+
+        $relay = RelayModel::query()->first();
+
+        $this->assertInstanceOf(RelayModel::class, $relay);
+        $this->assertSame(RelayFailure::INVALID_PAYLOAD->value, $relay->failure_reason);
+        $this->assertSame(422, $relay->response_http_status);
+        $this->assertIsArray($relay->response_payload);
+        $this->assertSame('validator-guard', $relay->response_payload['guard'] ?? null);
+        $this->assertNotEmpty($relay->response_payload['errors'] ?? []);
     }
 
     public function test_guard_allows_request_and_captures_when_valid(): void

@@ -60,7 +60,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `relay(): ?Relay` | Returns the last persisted relay instance without re-capturing. |
 | `context(): RelayContext` | Exposes the immutable capture payload (useful for tests). |
 
-> **Inbound Guards:** Guard profiles derive from `atlas-relay.inbound.provider_guards` or explicit `guard()` calls. Guards validate required headers and optional validators before any delivery path, throwing `Atlas\Relay\Exceptions\ForbiddenWebhookException` on failure and marking relays with `RelayFailure::FORBIDDEN_GUARD` when `capture_forbidden` is enabled.
+> **Inbound Guards:** Guard profiles derive from `atlas-relay.inbound.provider_guards` or explicit `guard()` calls. Guards validate required headers and optional validators before any delivery path, throwing `Atlas\Relay\Exceptions\ForbiddenWebhookException` for authentication failures and `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` for payload validation failures. When `capture_forbidden` is enabled the relay is stored with the matching guard failure code.
 
 ### Delivery Actions
 
@@ -198,6 +198,7 @@ Adjust the cadence as needed for your environment or run the commands manually.
 | `Atlas\Relay\Enums\RelayFailure` | Canonical failure codes (`PAYLOAD_TOO_LARGE`, `NO_ROUTE_MATCH`, etc.) with helper `label()`/`description()`. Use them when forcing failures or handling lifecycle callbacks. |
 | `Atlas\Relay\Exceptions\RelayHttpException` | Thrown for HTTPS enforcement, redirect violations, or other outbound HTTP guard rails. Call `failure()` to obtain the associated `RelayFailure`. |
 | `Atlas\Relay\Exceptions\ForbiddenWebhookException` | Raised when inbound guard profiles reject a webhook; consumers should return `403` to the sender and consult relay logs for `FORBIDDEN_GUARD` failures. |
+| `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` | Raised when guard validators reject payload contents; consumers should return `422` (or similar) and inspect relay logs for `INVALID_PAYLOAD` failures. |
 | `Atlas\Relay\Exceptions\RelayJobFailedException` | Throw (or use `RelayJobHelper::fail()`) inside jobs to mark a relay as failed with custom attributes. |
 
 ---

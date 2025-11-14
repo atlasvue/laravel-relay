@@ -68,11 +68,12 @@ Provider-level guard profiles enforce authentication headers before any webhook 
 ];
 ```
 
-Guards can be mapped via `provider('stripe')` or specified explicitly with `guard('stripe-signature')`. When the guard rejects a request, Atlas throws `Atlas\Relay\Exceptions\ForbiddenWebhookException` and marks the relay with `RelayFailure::FORBIDDEN_GUARD` when `capture_forbidden` is `true`. Set `capture_forbidden` to `false` for test/local providers to skip persisting failed attempts while still enforcing the guard.
+Guards can be mapped via `provider('stripe')` or specified explicitly with `guard('stripe-signature')`. When the guard rejects a request, Atlas throws `Atlas\Relay\Exceptions\ForbiddenWebhookException` (auth failure) or `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` (payload validation failure) and marks the relay with `RelayFailure::FORBIDDEN_GUARD` or `RelayFailure::INVALID_PAYLOAD` when `capture_forbidden` is `true`. Set `capture_forbidden` to `false` for test/local providers to skip persisting failed attempts while still enforcing the guard.
 
 ### Example with guard exception handling
 ```php
 use Atlas\Relay\Exceptions\ForbiddenWebhookException;
+use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
 use Illuminate\Http\Request;
 
 public function __invoke(Request $request)
@@ -86,6 +87,49 @@ public function __invoke(Request $request)
     } catch (ForbiddenWebhookException $exception) {
         // Expected guard failure — respond with 403 and skip error reporting.
         return response()->json(['message' => 'Forbidden'], 403);
+    } catch (InvalidWebhookPayloadException $exception) {
+        return response()->json(['message' => 'Payload rejected'], 422);
+    }
+}
+```
+
+### Validator example
+```php
+use Atlas\Relay\Contracts\InboundGuardValidatorInterface;
+use Atlas\Relay\Exceptions\ForbiddenWebhookException;
+use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
+use Atlas\Relay\Models\Relay;
+use Atlas\Relay\Support\InboundGuardProfile;
+use Illuminate\Http\Request;
+
+class StripeWebhookValidator implements InboundGuardValidatorInterface
+{
+    /**
+     * @param  list<string>  $requiredKeys
+     */
+    public function __construct(
+        private readonly array $requiredKeys = ['id', 'type', 'data.object'],
+    ) {}
+
+    public function validate(Request $request, InboundGuardProfile $profile, ?Relay $relay = null): void
+    {
+        $payload = $request->json()->all();
+
+        if (! is_array($payload)) {
+            throw InvalidWebhookPayloadException::fromViolations($profile->name, ['payload must be JSON']);
+        }
+
+        foreach ($this->requiredKeys as $path) {
+            if (! data_get($payload, $path)) {
+                throw InvalidWebhookPayloadException::fromViolations($profile->name, [
+                    sprintf('missing required payload key [%s]', $path),
+                ]);
+            }
+        }
+
+        if (! in_array(data_get($payload, 'type'), ['charge.succeeded', 'charge.failed'], true)) {
+            throw ForbiddenWebhookException::fromViolations($profile->name, ['unsupported event type']);
+        }
     }
 }
 ```

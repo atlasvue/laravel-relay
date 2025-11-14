@@ -6,6 +6,7 @@ namespace Atlas\Relay\Services;
 
 use Atlas\Relay\Contracts\InboundGuardValidatorInterface;
 use Atlas\Relay\Exceptions\ForbiddenWebhookException;
+use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Support\InboundGuardProfile;
 use Illuminate\Contracts\Container\Container;
@@ -83,10 +84,10 @@ class InboundGuardService
 
         try {
             $validator->validate($request, $profile, $relay);
-        } catch (ForbiddenWebhookException $exception) {
+        } catch (ForbiddenWebhookException|InvalidWebhookPayloadException $exception) {
             throw $exception;
         } catch (\Throwable $exception) {
-            throw ForbiddenWebhookException::fromViolations($profile->name, [$exception->getMessage()]);
+            throw InvalidWebhookPayloadException::fromViolations($profile->name, [$exception->getMessage()]);
         }
     }
 
