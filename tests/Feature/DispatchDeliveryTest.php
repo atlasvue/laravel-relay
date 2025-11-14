@@ -152,6 +152,74 @@ class DispatchDeliveryTest extends TestCase
         $this->assertSame($relay->id, $capturedJob->relayId);
     }
 
+    public function test_dispatch_job_status_transitions_success(): void
+    {
+        Queue::fake();
+        StatusInspectionJob::$statusDuringHandle = null;
+
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        $builder->dispatch(new StatusInspectionJob);
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $capturedJob = null;
+        Queue::assertPushed(StatusInspectionJob::class, function (StatusInspectionJob $job) use (&$capturedJob): bool {
+            $capturedJob = $job;
+
+            return true;
+        });
+
+        $this->assertNotNull($capturedJob);
+
+        $middleware = $capturedJob->middleware[0] ?? null;
+        $this->assertInstanceOf(RelayJobMiddleware::class, $middleware);
+
+        $middleware->handle($capturedJob, function (StatusInspectionJob $job): void {
+            $job->handle();
+        });
+
+        $this->assertSame(RelayStatus::PROCESSING, StatusInspectionJob::$statusDuringHandle);
+
+        $relay->refresh();
+        $this->assertSame(RelayStatus::COMPLETED, $relay->status);
+        $this->assertNull($relay->failure_reason);
+    }
+
+    public function test_dispatch_job_exception_marks_failed(): void
+    {
+        Queue::fake();
+
+        $builder = Relay::payload(['foo' => 'bar']);
+
+        $builder->dispatch(new ExplodingJob);
+
+        $relay = $this->assertRelayInstance($builder->relay());
+
+        $capturedJob = null;
+        Queue::assertPushed(ExplodingJob::class, function (ExplodingJob $job) use (&$capturedJob): bool {
+            $capturedJob = $job;
+
+            return true;
+        });
+
+        $this->assertNotNull($capturedJob);
+
+        $middleware = $capturedJob->middleware[0] ?? null;
+        $this->assertInstanceOf(RelayJobMiddleware::class, $middleware);
+
+        try {
+            $middleware->handle($capturedJob, function (ExplodingJob $job): void {
+                $job->handle();
+            });
+            $this->fail('Expected exception not thrown.');
+        } catch (\RuntimeException) {
+            $relay->refresh();
+            $this->assertSame(RelayStatus::FAILED, $relay->status);
+            $this->assertSame(RelayFailure::EXCEPTION->value, $relay->failure_reason);
+        }
+    }
+
     public function test_request_builder_dispatches_closure_with_payload(): void
     {
         Queue::fake();
@@ -346,5 +414,52 @@ class ContextAwareJob implements ShouldQueue
         if ($relay !== null) {
             $this->relayId = $relay->id;
         }
+    }
+}
+
+class StatusInspectionJob implements ShouldQueue
+{
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+
+    public static ?RelayStatus $statusDuringHandle = null;
+
+    /**
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [];
+    }
+
+    public function handle(): void
+    {
+        /** @var RelayJobContext $context */
+        $context = app(RelayJobContext::class);
+        $relay = $context->current();
+        self::$statusDuringHandle = $relay?->status;
+    }
+}
+
+class ExplodingJob implements ShouldQueue
+{
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
+
+    /**
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [];
+    }
+
+    public function handle(): void
+    {
+        throw new \RuntimeException('Job failure');
     }
 }

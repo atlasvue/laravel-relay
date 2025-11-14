@@ -23,7 +23,12 @@ class EventDeliveryTest extends TestCase
     {
         $builder = Relay::payload(['foo' => 'bar']);
 
-        $result = $builder->event(fn (): string => 'ok');
+        $result = $builder->event(function (array $payload, RelayModel $relay): string {
+            $relay->refresh();
+            $this->assertSame(RelayStatus::PROCESSING, $relay->status);
+
+            return 'ok';
+        });
 
         $this->assertSame('ok', $result);
         $relay = $this->assertRelayInstance($builder->relay());
@@ -49,7 +54,10 @@ class EventDeliveryTest extends TestCase
         $builder = Relay::payload(['foo' => 'bar']);
 
         try {
-            $builder->event(function (): void {
+            $builder->event(function (array $payload, RelayModel $relay): void {
+                $relay->refresh();
+                $this->assertSame(RelayStatus::PROCESSING, $relay->status);
+
                 throw new RuntimeException('boom');
             });
             $this->fail('Expected exception was not thrown.');
