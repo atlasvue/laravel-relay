@@ -58,6 +58,8 @@ Relay::request($request)->dispatch(new ExampleJob);
 
 Using `event` synchronously processes your action, but you can also use Laravel's `dispatch()` and its methods directly. Atlas will ensure to mark the relay completed or failed depending on the execution. 
 
+[Example with guard and exception handling](./docs/PRD/PRD-Payload-Capture.md#example-with-guard-exception-handling)
+
 ---
 
 ### Send a Webhook
@@ -71,7 +73,7 @@ $payload = ['event' => 'order.created'];
 Relay::http()->post('https://api.example.com/webhooks', $payload);
 
 // Tag outbound relays even when starting directly from the manager
-Relay::setProvider('stripe')
+Relay::provider('stripe')
     ->setReferenceId('ord-123')
     ->http()
     ->post('https://api.example.com/webhooks', $payload);

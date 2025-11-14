@@ -37,9 +37,9 @@ class RelayManager implements RelayManagerInterface
         return $this->newBuilder()->payload($payload);
     }
 
-    public function setProvider(?string $provider): RelayBuilder
+    public function provider(?string $provider): RelayBuilder
     {
-        return $this->newBuilder()->setProvider($provider);
+        return $this->newBuilder()->provider($provider);
     }
 
     public function setReferenceId(?string $referenceId): RelayBuilder

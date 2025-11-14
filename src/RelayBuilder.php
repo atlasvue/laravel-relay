@@ -177,7 +177,7 @@ class RelayBuilder
         );
     }
 
-    public function setProvider(?string $provider): self
+    public function provider(?string $provider): self
     {
         $provider = is_string($provider) ? trim($provider) : null;
         $this->provider = $provider === '' ? null : $provider;

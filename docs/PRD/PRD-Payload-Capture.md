@@ -5,11 +5,7 @@
 
 Payload Capture is the first stage of Atlas Relay. It records every inbound payload—HTTP, internal, or programmatic—storing headers, source IP, and JSON data with full lifecycle visibility. Guard profiles run before capture to reject unauthenticated webhooks while still logging the attempt when configured. All captures become relay records and move into routing and processing.
 
-## Capture Flow
-
-Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Store Relay Record → Ready for Processing.
-
-## Relay Record Schema (`atlas_relays`)
+## Relay Schema (`atlas_relays`)
 
 | Field                  | Description                                             |
 |------------------------|---------------------------------------------------------|
@@ -72,7 +68,7 @@ Provider-level guard profiles enforce authentication headers before any webhook 
 ];
 ```
 
-Guards can be mapped via `setProvider('stripe')` or specified explicitly with `guard('stripe-signature')`. When the guard rejects a request, Atlas throws `Atlas\Relay\Exceptions\ForbiddenWebhookException` and marks the relay with `RelayFailure::FORBIDDEN_GUARD` when `capture_forbidden` is `true`. Set `capture_forbidden` to `false` for test/local providers to skip persisting failed attempts while still enforcing the guard.
+Guards can be mapped via `provider('stripe')` or specified explicitly with `guard('stripe-signature')`. When the guard rejects a request, Atlas throws `Atlas\Relay\Exceptions\ForbiddenWebhookException` and marks the relay with `RelayFailure::FORBIDDEN_GUARD` when `capture_forbidden` is `true`. Set `capture_forbidden` to `false` for test/local providers to skip persisting failed attempts while still enforcing the guard.
 
 ### Example with guard exception handling
 ```php
@@ -83,7 +79,7 @@ public function __invoke(Request $request)
 {
     try {
         Relay::request($request)
-            ->setProvider('stripe')
+            ->provider('stripe')
             ->event(fn($payload) => $this->handleEvent($payload));
 
         return response()->json(['status' => 'ok']);

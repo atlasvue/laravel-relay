@@ -85,7 +85,7 @@ class HttpDeliveryTest extends TestCase
     {
         $relay = $this->assertRelayInstance(
             Relay::payload(['status' => 'queued'])
-                ->setProvider('stripe')
+                ->provider('stripe')
                 ->setReferenceId('ord-123')
                 ->capture()
         );
@@ -100,7 +100,7 @@ class HttpDeliveryTest extends TestCase
             'https://example.com/*' => Http::response(['ok' => true], 200),
         ]);
 
-        Relay::setProvider('stripe')
+        Relay::provider('stripe')
             ->setReferenceId('ord-123')
             ->http()
             ->post('https://example.com/relay', ['payload' => true]);

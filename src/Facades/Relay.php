@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Facade;
  *
  * @method static RelayBuilder request(Request $request)
  * @method static RelayBuilder payload(mixed $payload)
- * @method static RelayBuilder setProvider(?string $provider)
+ * @method static RelayBuilder provider(?string $provider)
  * @method static RelayBuilder setReferenceId(?string $referenceId)
  * @method static RelayBuilder guard(?string $guard)
  * @method static \Atlas\Relay\Support\RelayHttpClient http()

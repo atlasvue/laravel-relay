@@ -45,7 +45,7 @@ class InboundGuardTest extends TestCase
 
         try {
             Relay::request($request)
-                ->setProvider('stripe')
+                ->provider('stripe')
                 ->capture();
 
             $this->fail('Forbidden guard exception was not thrown.');
@@ -85,7 +85,7 @@ class InboundGuardTest extends TestCase
 
         try {
             Relay::request($request)
-                ->setProvider('internal')
+                ->provider('internal')
                 ->capture();
 
             $this->fail('Forbidden guard exception was not thrown.');
@@ -154,7 +154,7 @@ class InboundGuardTest extends TestCase
         $request->headers->set('Stripe-Signature', 'valid');
 
         $relay = Relay::request($request)
-            ->setProvider('stripe')
+            ->provider('stripe')
             ->capture();
 
         $this->assertInstanceOf(RelayModel::class, $relay);
