@@ -17,7 +17,8 @@ enum RelayFailure: int
     case INVALID_PAYLOAD = 105;
     case ROUTE_DISABLED = 106;
     case ROUTE_RESOLVER_ERROR = 107;
-    case FORBIDDEN_GUARD = 108;
+    case INVALID_GUARD_HEADERS = 108;
+    case INVALID_GUARD_PAYLOAD = 109;
     case HTTP_ERROR = 201;
     case CONNECTION_ERROR = 205;
     case CONNECTION_TIMEOUT = 206;
@@ -33,7 +34,8 @@ enum RelayFailure: int
             self::INVALID_PAYLOAD => 'Invalid Payload',
             self::ROUTE_DISABLED => 'Route Disabled',
             self::ROUTE_RESOLVER_ERROR => 'Route Resolver Error',
-            self::FORBIDDEN_GUARD => 'Forbidden Guard',
+            self::INVALID_GUARD_HEADERS => 'Invalid Guard Headers',
+            self::INVALID_GUARD_PAYLOAD => 'Invalid Guard Payload',
             self::HTTP_ERROR => 'HTTP Error',
             self::CONNECTION_ERROR => 'Connection Error',
             self::CONNECTION_TIMEOUT => 'Connection Timeout',
@@ -51,7 +53,8 @@ enum RelayFailure: int
             self::INVALID_PAYLOAD => 'Payload body failed JSON decoding; raw request preserved.',
             self::ROUTE_DISABLED => 'Matched route is disabled and cannot be used.',
             self::ROUTE_RESOLVER_ERROR => 'Programmatic routing provider threw an exception.',
-            self::FORBIDDEN_GUARD => 'Inbound provider guard rejected the request before processing.',
+            self::INVALID_GUARD_HEADERS => 'Inbound guard rejected the request because required headers failed validation.',
+            self::INVALID_GUARD_PAYLOAD => 'Inbound guard rejected payload contents before processing.',
             self::HTTP_ERROR => 'Outbound response returned a non-2xx HTTP status code.',
             self::CONNECTION_ERROR => 'Outbound delivery failed because of network, SSL, or DNS errors.',
             self::CONNECTION_TIMEOUT => 'Outbound delivery timed out before receiving a response.',

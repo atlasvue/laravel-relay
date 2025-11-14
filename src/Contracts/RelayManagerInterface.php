@@ -23,6 +23,9 @@ interface RelayManagerInterface
 
     public function setReferenceId(?string $referenceId): RelayBuilder;
 
+    /**
+     * @param  class-string<InboundRequestGuardInterface>|null  $guard
+     */
     public function guard(?string $guard): RelayBuilder;
 
     public function http(): RelayHttpClient;

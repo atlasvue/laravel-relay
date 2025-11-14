@@ -3,7 +3,7 @@
 
 ## Overview
 
-Receive Webhook Relay is the first stage of Atlas Relay. It guarantees that every inbound webhook request (or internal payload) is captured, normalized, validated, and stored before any business logic executes. Guard profiles authenticate requests up front, the payload extractor normalizes JSON bodies, and the resulting relay record becomes the system of record for downstream delivery.
+Receive Webhook Relay is the first stage of Atlas Relay. It guarantees that every inbound webhook request (or internal payload) is captured, normalized, validated, and stored before any business logic executes. Guard classes authenticate requests up front, the payload extractor normalizes JSON bodies, and the resulting relay record becomes the system of record for downstream delivery.
 
 ## Relay Schema (`atlas_relays`)
 
@@ -46,38 +46,67 @@ Receive Webhook Relay is the first stage of Atlas Relay. It guarantees that ever
 | 103  | CANCELLED             | Manually cancelled.                                       |
 | 104  | ROUTE_TIMEOUT         | Processing timeout.                                       |
 | 105  | INVALID_PAYLOAD       | JSON decode failure.                                      |
-| 108  | FORBIDDEN_GUARD       | Provider guard rejected the request before processing.    |
+| 108  | INVALID_GUARD_HEADERS | Guard rejected the request before processing because headers failed validation. |
+| 109  | INVALID_GUARD_PAYLOAD | Guard rejected payload contents before processing.        |
 | 201  | HTTP_ERROR            | Non‑2xx response.                                         |
 | 205  | CONNECTION_ERROR      | Network/SSL/DNS failure.                                  |
 | 206  | CONNECTION_TIMEOUT    | HTTP timeout.                                             |
 
-## Provider Guards
+## Inbound Guard Classes
 
-Provider-level guard profiles enforce authentication requirements before any webhook proceeds. Configure them in `config/atlas-relay.php`:
+Inbound guards are authored as plain PHP classes and registered inline via `guard(StripeWebhookGuard::class)`. No configuration files are required. Guards can **implement** `Atlas\Relay\Contracts\InboundRequestGuardInterface` or extend the convenience base class `Atlas\Relay\Guards\BaseInboundRequestGuard`.
 
+- `validateHeaders()` is responsible for authentication or signature validation and should throw `Atlas\Relay\Exceptions\InvalidWebhookHeadersException` when the check fails. Atlas automatically surfaces `RelayFailure::INVALID_GUARD_HEADERS` (code `108`) for captured attempts.
+- `validatePayload()` receives the normalized payload array/object and should throw `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` for schema problems. Atlas records `RelayFailure::INVALID_GUARD_PAYLOAD` (code `109`) with the violations.
+- Both validation methods receive an `InboundRequestGuardContext` that already contains the `Request`, normalized headers, decoded payload, and (when configured) the persisted `Relay` model. Consumers never need to rehydrate these values manually.
+- `captureFailures()` controls whether a failing guard persists the relay before throwing. Return `true` for audit trails or `false` for providers that should not log rejected attempts.
+- Guard methods are optional—leave either method untouched if only headers or payload validation is required.
+
+### Example guard class
 ```php
-'inbound' => [
-    'provider_guards' => [
-        'stripe' => 'stripe-signature',
-    ],
-    'guards' => [
-        'stripe-signature' => [
-            'capture_forbidden' => true,
-            'required_headers' => [
-                'Stripe-Signature',
-                'X-Relay-Key' => env('RELAY_SHARED_KEY'),
-            ],
-            'validator' => \App\Guards\StripeWebhookValidator::class, // optional
-        ],
-    ],
-];
-```
+use Atlas\Relay\Exceptions\InvalidWebhookHeadersException;
+use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
+use Atlas\Relay\Guards\BaseInboundRequestGuard;
+use Atlas\Relay\Support\InboundRequestGuardContext;
+use Illuminate\Support\Arr;
 
-Guards can be mapped via `provider('stripe')` or specified explicitly with `guard('stripe-signature')`. When the guard rejects a request, Atlas throws `Atlas\Relay\Exceptions\ForbiddenWebhookException` (auth failure) or `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` (payload validation failure) and marks the relay with `RelayFailure::FORBIDDEN_GUARD` or `RelayFailure::INVALID_PAYLOAD` when `capture_forbidden` is `true`. Set `capture_forbidden` to `false` for test/local providers to skip persisting failed attempts while still enforcing the guard.
+class StripeWebhookGuard extends BaseInboundRequestGuard
+{
+    public function validateHeaders(InboundRequestGuardContext $context): void
+    {
+        $signature = $context->header('Stripe-Signature');
+
+        if ($signature === null) {
+            throw InvalidWebhookHeadersException::fromViolations($this->name(), ['missing Stripe-Signature header']);
+        }
+
+        $expected = hash_hmac('sha256', $context->request()->getContent(), config('services.stripe.webhook_secret'));
+
+        if (! hash_equals($expected, $signature)) {
+            throw InvalidWebhookHeadersException::fromViolations($this->name(), ['signature mismatch']);
+        }
+    }
+
+    public function validatePayload(InboundRequestGuardContext $context): void
+    {
+        $payload = Arr::wrap($context->payload());
+        $type = Arr::get($payload, 'type');
+
+        if (! in_array($type, ['charge.succeeded', 'charge.failed'], true)) {
+            throw InvalidWebhookPayloadException::fromViolations($this->name(), ['unsupported webhook type']);
+        }
+    }
+
+    public function captureFailures(): bool
+    {
+        return true; // audit blocked attempts
+    }
+}
+```
 
 ### Guard exception handling
 ```php
-use Atlas\Relay\Exceptions\ForbiddenWebhookException;
+use Atlas\Relay\Exceptions\InvalidWebhookHeadersException;
 use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
 use Illuminate\Http\Request;
 
@@ -86,54 +115,14 @@ public function __invoke(Request $request)
     try {
         Relay::request($request)
             ->provider('stripe')
+            ->guard(\App\Guards\StripeWebhookGuard::class)
             ->event(fn ($payload) => $this->handleEvent($payload));
 
         return response()->json(['message' => 'ok']);
-    } catch (ForbiddenWebhookException $exception) {
+    } catch (InvalidWebhookHeadersException $exception) {
         return response()->json(['message' => 'Forbidden'], 403);
     } catch (InvalidWebhookPayloadException $exception) {
         return response()->json(['message' => $exception->getMessage()], 422);
-    }
-}
-```
-
-### Validator example
-```php
-use Atlas\Relay\Contracts\InboundGuardValidatorInterface;
-use Atlas\Relay\Exceptions\ForbiddenWebhookException;
-use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
-use Atlas\Relay\Models\Relay;
-use Atlas\Relay\Support\InboundGuardProfile;
-use Illuminate\Http\Request;
-
-class StripeWebhookValidator implements InboundGuardValidatorInterface
-{
-    /**
-     * @param  list<string>  $requiredKeys
-     */
-    public function __construct(
-        private readonly array $requiredKeys = ['id', 'type', 'data.object'],
-    ) {}
-
-    public function validate(Request $request, InboundGuardProfile $profile, ?Relay $relay = null): void
-    {
-        $payload = $request->json()->all();
-
-        if (! is_array($payload)) {
-            throw InvalidWebhookPayloadException::fromViolations($profile->name, ['payload must be JSON']);
-        }
-
-        foreach ($this->requiredKeys as $path) {
-            if (! data_get($payload, $path)) {
-                throw InvalidWebhookPayloadException::fromViolations($profile->name, [
-                    sprintf('missing required payload key [%s]', $path),
-                ]);
-            }
-        }
-
-        if (! in_array(data_get($payload, 'type'), ['charge.succeeded', 'charge.failed'], true)) {
-            throw ForbiddenWebhookException::fromViolations($profile->name, ['unsupported event type']);
-        }
     }
 }
 ```
@@ -143,4 +132,4 @@ class StripeWebhookValidator implements InboundGuardValidatorInterface
 - Payloads are truncated when `atlas-relay.payload_max_bytes` is exceeded and the relay is marked `PAYLOAD_TOO_LARGE`.
 - Sensitive headers are masked according to `atlas-relay.sensitive_headers`.
 - Destination URLs longer than 255 characters are rejected with `InvalidDestinationUrlException`.
-- When guards opt-in to `capture_forbidden`, relays are stored even when authentication fails, ensuring auditability.
+- When guards opt-in via `captureFailures()`, relays are stored even when validation fails, ensuring auditability.

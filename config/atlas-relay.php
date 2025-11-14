@@ -26,21 +26,4 @@ return [
         'api-key',
         'cookie',
     ],
-
-    'inbound' => [
-        'provider_guards' => [
-            // 'stripe' => 'stripe-signature',
-        ],
-
-        'guards' => [
-            // 'stripe-signature' => [
-            //     'capture_forbidden' => true,
-            //     'required_headers' => [
-            //         'stripe-signature',
-            //         'x-team-token' => 'expected-value',
-            //     ],
-            //     'validator' => null,
-            // ],
-        ],
-    ],
 ];

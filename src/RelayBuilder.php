@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace Atlas\Relay;
 
+use Atlas\Relay\Contracts\InboundRequestGuardInterface;
 use Atlas\Relay\Enums\HttpMethod;
 use Atlas\Relay\Enums\RelayFailure;
 use Atlas\Relay\Enums\RelayStatus;
 use Atlas\Relay\Enums\RelayType;
-use Atlas\Relay\Exceptions\ForbiddenWebhookException;
+use Atlas\Relay\Exceptions\InvalidWebhookHeadersException;
 use Atlas\Relay\Exceptions\InvalidWebhookPayloadException;
 use Atlas\Relay\Models\Relay;
 use Atlas\Relay\Services\InboundGuardService;
 use Atlas\Relay\Services\RelayCaptureService;
 use Atlas\Relay\Services\RelayDeliveryService;
 use Atlas\Relay\Services\RelayLifecycleService;
-use Atlas\Relay\Support\InboundGuardProfile;
+use Atlas\Relay\Support\InboundRequestGuardContext;
 use Atlas\Relay\Support\RelayContext;
 use Atlas\Relay\Support\RelayHttpClient;
 use Atlas\Relay\Support\RequestPayloadExtractor;
@@ -57,13 +58,13 @@ class RelayBuilder
 
     private ?string $referenceId = null;
 
-    private ?string $guardName = null;
+    private ?string $guardClass = null;
 
     private bool $guardValidated = false;
 
-    private bool $guardProfileResolved = false;
+    private bool $guardResolved = false;
 
-    private ?InboundGuardProfile $guardProfile = null;
+    private ?InboundRequestGuardInterface $resolvedGuard = null;
 
     public function __construct(
         private readonly RelayCaptureService $captureService,
@@ -196,7 +197,7 @@ class RelayBuilder
     public function guard(?string $guard): self
     {
         $guard = is_string($guard) ? trim($guard) : null;
-        $this->guardName = $guard === '' ? null : $guard;
+        $this->guardClass = $guard === '' ? null : $guard;
         $this->resetGuardState();
 
         return $this;
@@ -270,20 +271,26 @@ class RelayBuilder
             return;
         }
 
-        $profile = $this->resolveGuardProfile();
+        $guard = $this->resolveGuard();
 
-        if ($profile === null) {
+        if ($guard === null) {
             $this->guardValidated = true;
 
             return;
         }
 
-        $relay = $profile->captureForbidden ? $this->ensureRelayCaptured() : null;
+        $relay = $guard->captureFailures() ? $this->ensureRelayCaptured() : null;
+        $context = new InboundRequestGuardContext(
+            $request,
+            $this->resolvedHeaders(),
+            $this->payload,
+            $relay
+        );
 
         try {
-            $this->guardService->validate($request, $profile, $relay);
-        } catch (ForbiddenWebhookException|InvalidWebhookPayloadException $exception) {
-            $this->handleGuardFailure($exception, $profile, $relay);
+            $this->guardService->validate($guard, $context);
+        } catch (InvalidWebhookHeadersException|InvalidWebhookPayloadException $exception) {
+            $this->handleGuardFailure($exception, $guard, $relay);
 
             throw $exception;
         }
@@ -291,53 +298,51 @@ class RelayBuilder
         $this->guardValidated = true;
     }
 
-    private function resolveGuardProfile(): ?InboundGuardProfile
+    private function resolveGuard(): ?InboundRequestGuardInterface
     {
-        if ($this->guardProfileResolved) {
-            return $this->guardProfile;
+        if ($this->guardResolved) {
+            return $this->resolvedGuard;
         }
 
-        $this->guardProfileResolved = true;
+        $this->guardResolved = true;
 
-        if ($this->request === null) {
-            $this->guardProfile = null;
+        if ($this->guardClass === null) {
+            $this->resolvedGuard = null;
 
             return null;
         }
 
-        return $this->guardProfile = $this->guardService->resolveProfile($this->guardName, $this->provider);
+        return $this->resolvedGuard = $this->guardService->resolve($this->guardClass);
     }
 
     private function resetGuardState(): void
     {
         $this->guardValidated = false;
-        $this->guardProfileResolved = false;
-        $this->guardProfile = null;
+        $this->guardResolved = false;
+        $this->resolvedGuard = null;
     }
 
     private function handleGuardFailure(
         Throwable $exception,
-        InboundGuardProfile $profile,
+        InboundRequestGuardInterface $guard,
         ?Relay $relay
     ): void {
-        if (! $profile->captureForbidden || ! $relay instanceof Relay) {
+        if (! $guard->captureFailures() || ! $relay instanceof Relay) {
             return;
         }
 
         $failure = $exception instanceof InvalidWebhookPayloadException
-            ? RelayFailure::INVALID_PAYLOAD
-            : RelayFailure::FORBIDDEN_GUARD;
+            ? RelayFailure::INVALID_GUARD_PAYLOAD
+            : RelayFailure::INVALID_GUARD_HEADERS;
 
-        $status = $exception instanceof ForbiddenWebhookException
-            ? $exception->statusCode()
-            : ($exception instanceof InvalidWebhookPayloadException ? $exception->statusCode() : 400);
+        $status = method_exists($exception, 'statusCode') ? $exception->statusCode() : 400;
 
         $payload = [
-            'guard' => $profile->name,
+            'guard' => $guard->name(),
             'message' => $exception->getMessage(),
         ];
 
-        if ($exception instanceof ForbiddenWebhookException) {
+        if ($exception instanceof InvalidWebhookHeadersException) {
             $payload['violations'] = $exception->violations();
         }
 

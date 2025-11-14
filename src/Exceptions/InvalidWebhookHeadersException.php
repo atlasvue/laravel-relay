@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Atlas\Relay\Exceptions;
 
 /**
- * Exception thrown when inbound guard payload validation fails per PRD: Receive Webhook Relay — Guard Validation.
+ * Exception thrown when inbound guard header validation fails per PRD: Receive Webhook Relay — Guard Validation.
  */
-class InvalidWebhookPayloadException extends \RuntimeException
+class InvalidWebhookHeadersException extends \RuntimeException
 {
     /**
      * @param  array<int, string>  $violations
@@ -25,7 +25,7 @@ class InvalidWebhookPayloadException extends \RuntimeException
      */
     public static function fromViolations(string $guard, array $violations): self
     {
-        return new self($guard, $violations, self::buildMessage($guard, $violations));
+        return new self($guard, $violations);
     }
 
     public function guard(): string
@@ -43,7 +43,7 @@ class InvalidWebhookPayloadException extends \RuntimeException
 
     public function statusCode(): int
     {
-        return 422;
+        return 403;
     }
 
     /**
@@ -51,10 +51,14 @@ class InvalidWebhookPayloadException extends \RuntimeException
      */
     private static function buildMessage(string $guard, array $violations): string
     {
-        $summary = $violations === []
-            ? 'Payload failed guard validator checks.'
-            : implode(' ', $violations);
+        if ($violations === []) {
+            return sprintf('Inbound guard [%s] rejected the request headers.', $guard);
+        }
 
-        return sprintf('Inbound guard [%s] rejected payload: %s', $guard, $summary);
+        return sprintf(
+            'Inbound guard [%s] rejected the request headers: %s',
+            $guard,
+            implode(' ', $violations)
+        );
     }
 }

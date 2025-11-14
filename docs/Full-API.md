@@ -29,7 +29,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `Relay::type(RelayType $type): RelayBuilder` | Override the inferred relay type (e.g., force `RelayType::OUTBOUND`). |
 | `Relay::provider(?string $provider): RelayBuilder` | Start a builder, tag it with the provider identifier, and continue configuring (works great before calling `http()`). |
 | `Relay::setReferenceId(?string $referenceId): RelayBuilder` | Same as above but for consumer-defined reference IDs, enabling tagging before issuing `http()` calls. |
-| `Relay::guard(?string $guard): RelayBuilder` | Force a specific inbound guard profile (useful for tests or providers without a global mapping). |
+| `Relay::guard(?string $guard): RelayBuilder` | Attach an inbound guard class (`class-string<InboundRequestGuardInterface>`) that validates the request before capture. |
 | `Relay::http(): RelayHttpClient` | Return a ready-to-use HTTP client that captures payload + destination directly from the Laravel HTTP call. |
 | `Relay::cancel(Relay $relay): Relay` | Set the relay status to `cancelled` (uses lifecycle service). |
 
@@ -46,7 +46,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `status(RelayStatus $status)` | Override the initial status before capture. |
 | `provider(?string $provider)` | Associate the relay with a provider slug for downstream analytics/filters. Accepts `null` to clear. |
 | `setReferenceId(?string $referenceId)` | Store a consumer-defined identifier (order ID, case ID, etc.) alongside the relay record. |
-| `guard(?string $guard)` | Override provider mappings and force a named inbound guard profile to run before capture/delivery. |
+| `guard(?string $guard)` | Provide a guard class that will receive the inbound headers/payload before capture. |
 
 > **RelayStatus enum:** Status-related methods accept values from `Enums\RelayStatus`, which is stored as an unsigned tinyint on relay records.
 
@@ -58,7 +58,7 @@ This document enumerates every public surface Atlas Relay exposes to consuming L
 | `relay(): ?Relay` | Returns the last persisted relay instance without re-capturing. |
 | `context(): RelayContext` | Exposes the immutable capture payload (useful for tests). |
 
-> **Inbound Guards:** Guard profiles derive from `atlas-relay.inbound.provider_guards` or explicit `guard()` calls. Guards validate required headers and optional validators before any delivery path, throwing `Atlas\Relay\Exceptions\ForbiddenWebhookException` for authentication failures and `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` for payload validation failures. When `capture_forbidden` is enabled the relay is stored with the matching guard failure code.
+> **Inbound Guards:** Call `guard(YourGuard::class)` to run inline guard classes that implement `InboundRequestGuardInterface`. Atlas injects headers, payloads, and the request context automatically so guards can throw `InvalidWebhookHeadersException` or `InvalidWebhookPayloadException` without additional plumbing. Returning `true` from `captureFailures()` records the rejected relay for auditing.
 
 ### Delivery Actions
 
@@ -158,7 +158,6 @@ Adjust the cadence as needed for your environment or run the commands manually.
 | `tables.relays`, `tables.relay_archives` | Customize table names. |
 | `payload_max_bytes` | Unified max byte size for captured payloads, stored responses, and exception summaries (default 64KB). |
 | `sensitive_headers` | Header block list automatically masked to `*********` across inbound and outbound snapshots. |
-| `inbound.provider_guards`, `inbound.guards` | Define inbound guard mappings + profiles (`capture_forbidden`, `required_headers`, optional validator class) that enforce authentication before webhook processing. |
 | `archiving.archive_after_days`, `archiving.purge_after_days` | Retention windows for archival and purge jobs. Use `atlas-relay:archive --chunk=` to adjust batch size (default `500`). |
 
 ---
@@ -170,8 +169,8 @@ Adjust the cadence as needed for your environment or run the commands manually.
 | `Atlas\Relay\Enums\RelayType` | Distinguishes relay intent (`INBOUND`, `OUTBOUND`, `RELAY`). Builders infer the type automatically but you can call `type()` to override it. |
 | `Atlas\Relay\Enums\RelayFailure` | Canonical failure codes (`PAYLOAD_TOO_LARGE`, `NO_ROUTE_MATCH`, etc.) with helper `label()`/`description()`. Use them when forcing failures or handling lifecycle callbacks. |
 | `Atlas\Relay\Exceptions\RelayHttpException` | Thrown when HTTP delivery is misconfigured (missing URL, unsupported method, payload/URL size violations). Call `failure()` to obtain the associated `RelayFailure`. |
-| `Atlas\Relay\Exceptions\ForbiddenWebhookException` | Raised when inbound guard profiles reject a webhook; consumers should return `403` to the sender and consult relay logs for `FORBIDDEN_GUARD` failures. |
-| `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` | Raised when guard validators reject payload contents; consumers should return `422` (or similar) and inspect relay logs for `INVALID_PAYLOAD` failures. |
+| `Atlas\Relay\Exceptions\InvalidWebhookHeadersException` | Raised when guard header validation fails; consumers should return `403` (or similar) and consult relay logs for `INVALID_GUARD_HEADERS` failures. |
+| `Atlas\Relay\Exceptions\InvalidWebhookPayloadException` | Raised when guard payload validation fails; consumers should return `422` (or similar) and inspect relay logs for `INVALID_GUARD_PAYLOAD` failures. |
 | `Atlas\Relay\Exceptions\RelayJobFailedException` | Throw (or use `RelayJobHelper::fail()`) inside jobs to mark a relay as failed with custom attributes. |
 
 ---
