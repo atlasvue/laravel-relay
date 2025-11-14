@@ -8,6 +8,7 @@ Atlas Relay defines the rules for receiving, validating, normalizing, and captur
 - [Capture Rules](#capture-rules)
 - [Schema (Inbound Fields)](#schema-inbound-fields)
 - [Failure Codes](#failure-codes)
+- [Examples](#examples)
 - [Usage Link](#usage-link)
 
 ## High-Level Flow
@@ -71,6 +72,47 @@ Inbound failure codes:
 | 108  | INVALID_GUARD_HEADERS |
 | 109  | INVALID_GUARD_PAYLOAD |
 | 101  | PAYLOAD_TOO_LARGE     |
+
+## Examples
+
+### Basic Inbound Handling
+```php
+use Atlas\Relay\Facades\Relay;
+
+public function __invoke(Request $request)
+{
+    Relay::request($request)
+        ->event(fn ($payload) => $this->handleEvent($payload));
+
+    return response()->json(['ok' => true]);
+}
+```
+
+### Inbound With Guard
+```php
+Relay::request($request)
+    ->provider('stripe')
+    ->guard(StripeWebhookGuard::class)
+    ->event(fn ($payload) => $this->handleEvent($payload));
+```
+
+### Failing Guard Example
+```php
+class ExampleGuard extends BaseInboundRequestGuard
+{
+    public function validate(InboundRequestGuardContext $context): void
+    {
+        if (! $context->header('X-Signature')) {
+            $context->failHeaders(['Missing X-Signature header']);
+        }
+    }
+}
+```
+
+More end-to-end inbound examples are available in the **Example Usage** documentation.
+
+## Usage Link
+See **[Example Usage](./Example-Usage.md)** for complete inbound handling examples.
 
 ## Also See
 - [Atlas Relay](./Atlas-Relay.md)
