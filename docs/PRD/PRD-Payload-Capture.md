@@ -34,6 +34,7 @@ Inbound Request → Normalize Payload/Headers → Optional Route Lookup → Stor
 | `failure_reason`       | Enum for capture or downstream failure.                 |
 | `response_http_status` | HTTP status of last outbound request.                   |
 | `response_payload`     | Truncated last HTTP response body.                      |
+| `attempts`             | Number of processing attempts executed.                 |
 | `next_retry_at`        | Next retry timestamp.                                   |
 | `method`               | HTTP verb captured for inbound/outbound delivery.       |
 | `url`                  | Normalized route or destination URL applied everywhere. |
