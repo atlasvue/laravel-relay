@@ -9,7 +9,6 @@ Atlas Relay defines the rules for receiving, validating, normalizing, and captur
 - [Schema (Inbound Fields)](#schema-inbound-fields)
 - [Failure Codes](#failure-codes)
 - [Usage Link](#usage-link)
-- [Also See](#also-see)
 
 ## High-Level Flow
 HTTP Request → Guard (optional) → Normalize → Capture → Event/Dispatch/HTTP

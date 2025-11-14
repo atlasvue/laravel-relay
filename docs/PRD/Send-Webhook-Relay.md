@@ -1,52 +1,36 @@
 # PRD — Send Webhook Relay
 
-## Purpose
-This PRD defines **how Atlas Relay sends outbound webhooks** using Laravel’s `Http` client through `Relay::http()`.  
-It focuses exclusively on **sending** webhooks — not receiving, guarding, or capturing inbound requests.
+Atlas Relay defines how outbound webhooks are constructed, configured, executed, and captured using Laravel’s HTTP client through `Relay::http()`.
 
-For inbound flow, see:  
-**[Receive Webhook Relay](./Receive-Webhook-Relay.md)**
+## Table of Contents
+- [High-Level Flow](#high-level-flow)
+- [Outbound Model](#outbound-model)
+- [Using Relay::http()](#using-relayhttp)
+- [HTTP Execution Behavior](#http-execution-behavior)
+- [Failure Handling](#failure-handling)
+- [Lifecycle Rules](#lifecycle-rules)
+- [Notes](#notes)
 
-For usage examples, see:  
-**[Example Usage](./Example-Usage.md#4-direct-http)**
+## High-Level Flow
+Relay::http() → Configure → Send → Record Response → Complete/Fail
 
-Full API reference:  
-**[Full API](../Full-API.md)**
-
----
-
-## High‑Level Flow
-**Relay::http() → Configure → Send → Record Response → Complete/Fail**
-
-1. Initialize outbound relay (`OUTBOUND`)
-2. Configure headers/options using Laravel’s `Http` methods
-3. Execute HTTP verb (`post()`, `get()`, etc.)
-4. Atlas records:
-    - URL
-    - Method
-    - Headers (masked as needed)
-    - Request payload
-    - Response status
-    - Response payload (truncated)
-5. Relay is marked **Completed** or **Failed**
-
----
+1. Initialize outbound relay
+2. Apply headers and HTTP options
+3. Execute HTTP verb (post/get/etc.)
+4. Record request + response lifecycle fields
+5. Mark Completed or Failed
 
 ## Outbound Model
 Outbound relays:
 
-- Always use `RelayType::OUTBOUND`
-- Are captured automatically when the HTTP request is executed
-- Store **full request + response lifecycle metadata**
+- Always use `OUTBOUND`
+- Are captured automatically upon HTTP execution
+- Store full request + response details
 
-Lifecycle fields come from the `atlas_relays` schema (see Full API doc).
-
----
+All lifecycle fields come from the Atlas Relay schema.
 
 ## Using Relay::http()
-
 ### Basic Example
-
 ```php
 Relay::http()->post('https://api.example.com/webhook', [
     'event' => 'order.created',
@@ -54,15 +38,13 @@ Relay::http()->post('https://api.example.com/webhook', [
 ```
 
 ### With Headers
-
 ```php
 Relay::http()
     ->withHeaders(['X-Auth' => '123'])
     ->post('https://api.example.com/webhook', $payload);
 ```
 
-### With Provider + Reference ID (Analytics)
-
+### With Provider + Reference ID
 ```php
 Relay::provider('stripe')
     ->setReferenceId('ord-123')
@@ -70,71 +52,43 @@ Relay::provider('stripe')
     ->post('https://api.example.com/webhook', $payload);
 ```
 
----
-
 ## HTTP Execution Behavior
+- Laravel’s HTTP client performs the actual request
+- Relay captures:
+    - method
+    - URL
+    - headers
+    - payload
+    - response status
+    - response body (truncated)
+- HTTP options such as `timeout()`, `retry()`, `acceptJson()` are fully supported
 
-- **Laravel’s HTTP client** performs the real request
-- Relay tracks the entire lifecycle by wrapping the request
-- Headers from:
-    - `withHeaders()`
-    - `provider()` defaults
-    - inbound snapshot (if applicable)
-      merge into the relay record
-- All HTTP options work normally:
-    - `timeout()`
-    - `retry()`
-    - `acceptJson()`
-    - etc.
-
-Example:
-
-```php
-Relay::http()
-    ->timeout(10)
-    ->retry(3, 200)
-    ->post('https://api.example.com/receive', $payload);
-```
-
----
+Full outbound delivery logic is covered in **Example Usage**.
 
 ## Failure Handling
+Mapped failure codes:
 
-Failures automatically map to Relay Failure codes:
-
-| Scenario                | RelayFailure       |
+| Scenario                | Failure Code       |
 |-------------------------|--------------------|
 | Non‑2xx response        | HTTP_ERROR         |
 | Network/DNS/SSL failure | CONNECTION_ERROR   |
 | HTTP timeout            | CONNECTION_TIMEOUT |
 | Payload too large       | PAYLOAD_TOO_LARGE  |
 
-Relay lifecycle is updated accordingly.
-
----
-
 ## Lifecycle Rules
-
-- Relay starts in **Queued**
-- When HTTP execution begins → **Processing**
-- On valid response → **Completed**
-- On exception/error → **Failed**
-- `completed_at` is always updated
-
-More lifecycle rules:  
-**[Full API](../Full-API.md#delivery--lifecycle-services)**
-
----
+- Starts in **Queued**
+- Moves to **Processing** when HTTP begins
+- **Completed** on success
+- **Failed** on exception or failing status codes
+- `completed_at` always set
 
 ## Notes
+- No automatic retry system
+- Redirects/SSL behavior handled by Laravel HTTP client
+- Truncation for payload & response controlled by package config
 
-- Relay does **not** implement retries — consumers may trigger retries manually
-- HTTPS/redirect behavior is completely controlled by Laravel’s HTTP client
-- Payload/response data are truncated according to package config
-- No guard or validation exists in outbound flows
-
----
-
-This PRD defines only the **outbound send** behavior.  
-For practical examples, see:  
-**[Example Usage](./Example-Usage.md#4-direct-http)**
+## Also See
+- [Atlas Relay](./Atlas-Relay.md)
+- [Receive Webhook Relay](./Receive-Webhook-Relay.md)
+- [Archiving & Logging](./Archiving-and-Logging.md)
+- [Example Usage](./Example-Usage.md)

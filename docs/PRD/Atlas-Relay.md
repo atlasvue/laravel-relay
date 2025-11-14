@@ -10,7 +10,6 @@ Atlas Relay defines the unified system for capturing, processing, delivering, an
 - [Capture Requirements](#capture-requirements)
 - [Delivery Requirements](#delivery-requirements)
 - [Archiving (Retention Requirements)](#archiving-retention-requirements)
-- [Cross‑PRD Linking (Canonical References)](#crossprd-linking-canonical-references)
 
 ## Relay Data Model
 
