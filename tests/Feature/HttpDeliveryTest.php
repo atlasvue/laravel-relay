@@ -332,6 +332,31 @@ class HttpDeliveryTest extends TestCase
         $this->assertSame(RelayFailure::REDIRECT_HOST_CHANGED->value, $relay->failure_reason);
     }
 
+    public function test_http_response_payload_is_truncated_when_exceeding_limit(): void
+    {
+        Http::fake([
+            'https://example.com/*' => Http::response(str_repeat('A', 200), 200),
+        ]);
+
+        $originalMax = config('atlas-relay.payload.max_bytes');
+        config()->set('atlas-relay.payload.max_bytes', 32);
+
+        try {
+            $builder = Relay::payload(['status' => 'queued']);
+
+            $builder->http()->post('https://example.com/relay');
+
+            $relay = $this->assertRelayInstance($builder->relay());
+            $this->assertSame(200, $relay->response_http_status);
+            $this->assertSame(HttpMethod::POST, $relay->method);
+            $this->assertSame('https://example.com/relay', $relay->url);
+            $this->assertIsString($relay->response_payload);
+            $this->assertSame(32, strlen($relay->response_payload ?? ''));
+        } finally {
+            config()->set('atlas-relay.payload.max_bytes', $originalMax);
+        }
+    }
+
     public function test_http_redirect_count_exceeding_limit_records_failure_reason(): void
     {
         $builder = Relay::payload(['status' => 'queued']);
