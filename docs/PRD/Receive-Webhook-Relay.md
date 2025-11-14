@@ -79,6 +79,38 @@ Inbound-specific failures:
 
 ## Examples
 
+### Route Controller With Guard and HTTP Responses
+
+```php
+use Atlas\Relay\Facades\Relay;
+use Illuminate\Http\Request;
+
+class WebhookController
+{
+    public function __invoke(Request $request)
+    {
+        try {
+            Relay::request($request)
+                ->guard(StripeWebhookGuard::class)
+                ->event(fn ($payload) => $this->handleEvent($payload));
+
+            return response()->json(['ok' => true], 200);
+        } catch (\Throwable $e) {
+            // Map validation / guard failures back to the webhook sender
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 403);
+        }
+    }
+}
+```
+
+This pattern shows a realistic route controller that:
+- Uses a guard for validation/authorization.
+- Processes the webhook via an event handler.
+- Returns **200 OK** on success.
+- Returns **403 Forbidden** with the exception message for consumer-facing errors.
+
 ### Basic Inbound Handling
 ```php
 use Atlas\Relay\Facades\Relay;
