@@ -50,6 +50,9 @@ Atlas Relay must:
 
 ## Schema (Inbound Fields)
 
+The inbound capture uses a subset of the full relay schema.  
+For the **complete field list**, see the authoritative **[Atlas Relay PRD](./Atlas-Relay.md#relay-data-model)**.
+
 | Field                        | Description                            |
 |------------------------------|----------------------------------------|
 | `type`                       | Always `INBOUND`                       |
@@ -61,7 +64,11 @@ Atlas Relay must:
 | `completed_at`               | lifecycle completion                   |
 
 ## Failure Codes
-Inbound failure codes:
+
+Inbound failures reference the global unified failure enum.  
+See **[Atlas Relay Failure Codes](./Atlas-Relay.md#failure-reason-enum)** for the full list.
+
+Inbound-specific failures:
 
 | Code | Meaning               |
 |------|-----------------------|
